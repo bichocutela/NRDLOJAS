@@ -122,6 +122,15 @@ class MainViewModel(private val repository: ProductRepository) : ViewModel() {
             }
         }
     }
+
+    fun getProductsByCategory(category: String) = repository.getProductsByCategory(category)
+
+    fun updateProduct(product: Product) {
+        viewModelScope.launch {
+            repository.updateProduct(product)
+        }
+    }
+
     fun addProduct(name: String, code: String, category: String, unit: String) {
         viewModelScope.launch {
             val product = Product(

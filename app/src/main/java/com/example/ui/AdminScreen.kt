@@ -13,7 +13,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import com.example.data.Product
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
@@ -45,7 +50,7 @@ import kotlinx.serialization.json.put
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AdminScreen(viewModel: MainViewModel) {
+fun AdminScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
     var showManualForm by remember { mutableStateOf(false) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var selectedBitmap by remember { mutableStateOf<Bitmap?>(null) }
@@ -315,6 +320,12 @@ fun AdminScreen(viewModel: MainViewModel) {
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(16.dp))
+            AdminProductList(allProducts, viewModel)
+
         }
     }
 }
@@ -373,5 +384,99 @@ suspend fun analyzeImage(bitmap: Bitmap): ProductAnalysisResult? = withContext(D
     } catch (e: Exception) {
         e.printStackTrace()
         null
+    }
+}
+
+@Composable
+fun AdminProductList(products: List<Product>, viewModel: MainViewModel) {
+    var searchQuery by remember { mutableStateOf("") }
+    
+    Text("Gerenciar Produtos", style = MaterialTheme.typography.titleLarge)
+    Spacer(modifier = Modifier.height(16.dp))
+    
+    OutlinedTextField(
+        value = searchQuery,
+        onValueChange = { searchQuery = it },
+        label = { Text("Pesquisar produto ou categoria") },
+        modifier = Modifier.fillMaxWidth(),
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Pesquisar") }
+    )
+    
+    Spacer(modifier = Modifier.height(16.dp))
+    
+    val filteredProducts = products.filter {
+        it.name.contains(searchQuery, ignoreCase = true) ||
+        it.category.contains(searchQuery, ignoreCase = true) ||
+        it.code.contains(searchQuery, ignoreCase = true)
+    }
+    
+    val groupedProducts = filteredProducts.groupBy { it.category }
+    
+    groupedProducts.forEach { (category, categoryProducts) ->
+        Text(
+            text = category,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
+        categoryProducts.forEach { product ->
+            AdminProductItem(product, viewModel)
+        }
+    }
+}
+
+@Composable
+fun AdminProductItem(product: Product, viewModel: MainViewModel) {
+    var isEditing by remember { mutableStateOf(false) }
+    var editCode by remember(product.code) { mutableStateOf(product.code) }
+    var editName by remember(product.name) { mutableStateOf(product.name) }
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(text = product.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                IconButton(onClick = { isEditing = !isEditing }) {
+                    Icon(if (isEditing) Icons.Default.Close else Icons.Default.Edit, contentDescription = "Editar")
+                }
+            }
+            if (isEditing) {
+                OutlinedTextField(
+                    value = editName,
+                    onValueChange = { editName = it },
+                    label = { Text("Nome do Produto") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = editCode,
+                    onValueChange = { editCode = it },
+                    label = { Text("Novo Código") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = {
+                        val searchName = editName.lowercase().replace(Regex("[áàâã]"), "a").replace(Regex("[éèê]"), "e").replace(Regex("[íìî]"), "i").replace(Regex("[óòôõ]"), "o").replace(Regex("[úùû]"), "u").replace(Regex("[ç]"), "c")
+                        viewModel.updateProduct(product.copy(code = editCode, name = editName, searchName = searchName))
+                        isEditing = false
+                    },
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Text("Salvar")
+                }
+            } else {
+                Text(text = "Código: ${product.code}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
+            }
+        }
     }
 }

@@ -72,6 +72,10 @@ class ProductRepository(private val dao: ProductDao) {
         dao.insertProduct(product)
     }
 
+    suspend fun updateProduct(product: Product) {
+        dao.updateProduct(product)
+    }
+
     suspend fun populateInitialDataIfNeeded() {
         if (dao.getProductCount() == 0) {
             val initialProducts = listOf(

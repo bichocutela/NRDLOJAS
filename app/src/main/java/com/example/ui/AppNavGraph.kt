@@ -1,5 +1,12 @@
 package com.example.ui
 
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.ui.draw.alpha
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -24,15 +31,38 @@ fun AppNavGraph(viewModel: MainViewModel) {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val sharedPref = remember { context.getSharedPreferences("admin_prefs", Context.MODE_PRIVATE) }
+    var isLoggedIn by remember { mutableStateOf(sharedPref.getBoolean("is_logged_in", false)) }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet {
-                LoginDrawerContent(onLoginSuccess = {
-                    scope.launch { drawerState.close() }
-                    navController.navigate("admin")
-                })
+                LoginDrawerContent(
+                    viewModel = viewModel,
+                    isLoggedIn = isLoggedIn,
+                    onLoginSuccess = {
+                        sharedPref.edit().putBoolean("is_logged_in", true).apply()
+                        isLoggedIn = true
+                        scope.launch { drawerState.close() }
+                        navController.navigate("admin")
+                    },
+                    onLogout = {
+                        sharedPref.edit().putBoolean("is_logged_in", false).apply()
+                        isLoggedIn = false
+                        scope.launch { drawerState.close() }
+                        navController.navigate("search") {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onGoToAdmin = {
+                        scope.launch { drawerState.close() }
+                        navController.navigate("admin")
+                    }
+                )
             }
         }
     ) {
@@ -81,7 +111,9 @@ fun AppNavGraph(viewModel: MainViewModel) {
                     AssistantScreen(viewModel)
                 }
                 composable("admin") {
-                    AdminScreen(viewModel)
+                    AdminScreen(viewModel, onNavigateBack = {
+                        navController.popBackStack()
+                    })
                 }
             }
         }
@@ -89,51 +121,90 @@ fun AppNavGraph(viewModel: MainViewModel) {
 }
 
 @Composable
-fun LoginDrawerContent(onLoginSuccess: () -> Unit) {
+fun LoginDrawerContent(
+    viewModel: MainViewModel,
+    isLoggedIn: Boolean,
+    onLoginSuccess: () -> Unit,
+    onLogout: () -> Unit,
+    onGoToAdmin: () -> Unit
+) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var loginStatus by remember { mutableStateOf<String?>(null) }
+    val categories by viewModel.productsCountByCategory.collectAsState()
+    var expandedCategory by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(
-            text = "Login",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.height(32.dp))
-        OutlinedTextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text("Usuário") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Senha") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(
-            onClick = {
-                if (username == "admin" && password == "nrdlojas") {
-                    loginStatus = "Login com sucesso!"
-                    onLoginSuccess()
-                } else {
-                    loginStatus = "Usuário ou senha incorretos."
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Entrar")
+        if (!isLoggedIn) {
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "Login",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+            OutlinedTextField(
+                value = username,
+                onValueChange = { username = it },
+                label = { Text("Usuário") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Senha") },
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = {
+                    if (username == "admin" && password == "nrdlojas") {
+                        loginStatus = "Login com sucesso!"
+                        onLoginSuccess()
+                    } else {
+                        loginStatus = "Usuário ou senha incorretos."
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Entrar")
+            }
+            if (loginStatus != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = loginStatus!!,
+                    color = if (loginStatus == "Login com sucesso!") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                )
+            }
+        } else {
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "Administrador",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = onGoToAdmin,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Acessar Painel Administrativo")
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedButton(
+                onClick = onLogout,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Sair")
+            }
         }
         
         if (loginStatus != null) {
@@ -143,5 +214,97 @@ fun LoginDrawerContent(onLoginSuccess: () -> Unit) {
                 color = if (loginStatus == "Login com sucesso!") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
             )
         }
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        HorizontalDivider()
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Text(
+            text = "Categorias",
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.align(Alignment.Start)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        categories.forEach { categoryCount ->
+            CategoryItem(
+                category = categoryCount.category,
+                viewModel = viewModel,
+                isExpanded = expandedCategory == categoryCount.category,
+                onExpandToggle = {
+                    if (expandedCategory == categoryCount.category) {
+                        expandedCategory = null
+                    } else {
+                        expandedCategory = categoryCount.category
+                    }
+                }
+            )
+        }
     }
 }
+
+@Composable
+fun CategoryItem(
+    category: String,
+    viewModel: MainViewModel,
+    isExpanded: Boolean,
+    onExpandToggle: () -> Unit
+) {
+    val productsFlow = remember(category) { viewModel.getProductsByCategory(category) }
+    val products by if (isExpanded) productsFlow.collectAsState(initial = emptyList()) else remember { mutableStateOf(emptyList()) }
+    
+    Column(modifier = Modifier.fillMaxWidth()) {
+        TextButton(
+            onClick = onExpandToggle,
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(vertical = 12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(text = category, style = MaterialTheme.typography.titleMedium)
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (isExpanded) "Recolher" else "Expandir"
+                )
+            }
+        }
+        
+        if (isExpanded) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+            ) {
+                if (products.isEmpty()) {
+                    Text("Carregando...", style = MaterialTheme.typography.bodyMedium)
+                } else {
+                    products.forEach { product ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = product.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = product.code,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        HorizontalDivider(modifier = Modifier.alpha(0.5f))
+                    }
+                }
+            }
+        }
+    }
+}
+
