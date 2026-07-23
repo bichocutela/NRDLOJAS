@@ -73,6 +73,9 @@ class MainActivity : ComponentActivity() {
         if (crashLog != null) {
             CrashReporter.clearCrashLog(this)
             setContent {
+            LaunchedEffect(Unit) {
+                viewModel.syncProductsFromFirebase()
+            }
                 androidx.compose.material3.MaterialTheme {
                     androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                         androidx.compose.foundation.lazy.LazyColumn(modifier = Modifier.fillMaxSize()) {

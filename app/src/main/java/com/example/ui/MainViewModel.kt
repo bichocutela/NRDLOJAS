@@ -183,11 +183,25 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
                 unit = unit
             )
             repository.insertProduct(product)
+            com.example.data.FirebaseService.saveProduct(product)
             com.example.data.FirebaseService.publishLatestProduct(product)
             _newProductsCount.value += 1
         }
     }
-
+    
+    private val _isSyncing = MutableStateFlow(false)
+    val isSyncing = _isSyncing.asStateFlow()
+    
+    fun syncProductsFromFirebase() {
+        viewModelScope.launch {
+            _isSyncing.value = true
+            val remoteProducts = com.example.data.FirebaseService.getAllProducts()
+            if (remoteProducts.isNotEmpty()) {
+                repository.insertProducts(remoteProducts)
+            }
+            _isSyncing.value = false
+        }
+    }
     fun clearNewProductsCount() {
         _newProductsCount.value = 0
     }

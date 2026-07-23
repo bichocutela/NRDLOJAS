@@ -79,6 +79,7 @@ class ProductRepository(
         )
     }
 
+    suspend fun insertProducts(products: List<Product>) = dao.insertProducts(products)
     suspend fun insertProduct(product: Product) {
         dao.insertProduct(product)
     }

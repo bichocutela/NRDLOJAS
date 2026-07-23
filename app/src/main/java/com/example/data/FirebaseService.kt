@@ -26,6 +26,55 @@ object FirebaseService {
         }
     }
 
+    suspend fun saveProduct(product: com.example.data.Product) {
+        if (!isFirebaseConfigured()) return
+        try {
+            val firestore = FirebaseFirestore.getInstance()
+            firestore.collection("products").document(product.code)
+                .set(mapOf(
+                    "code" to product.code,
+                    "name" to product.name,
+                    "searchName" to product.searchName,
+                    "category" to product.category,
+                    "unit" to product.unit,
+                    "imageUrl" to product.imageUrl,
+                    "searchCount" to product.searchCount,
+                    "timestamp" to System.currentTimeMillis()
+                )).await()
+        } catch (e: Exception) {
+            Log.e("FirebaseService", "Error saving product", e)
+        }
+    }
+
+    suspend fun getAllProducts(): List<com.example.data.Product> {
+        if (!isFirebaseConfigured()) return emptyList()
+        return try {
+            val firestore = FirebaseFirestore.getInstance()
+            val snapshot = firestore.collection("products").get().await()
+            snapshot.documents.mapNotNull { doc ->
+                val code = doc.getString("code") ?: return@mapNotNull null
+                val name = doc.getString("name") ?: ""
+                val searchName = doc.getString("searchName") ?: ""
+                val category = doc.getString("category") ?: ""
+                val unit = doc.getString("unit") ?: "un"
+                val imageUrl = doc.getString("imageUrl")
+                val searchCount = doc.getLong("searchCount")?.toInt() ?: 0
+                com.example.data.Product(
+                    code = code,
+                    name = name,
+                    searchName = searchName,
+                    category = category,
+                    unit = unit,
+                    imageUrl = imageUrl,
+                    searchCount = searchCount
+                )
+            }
+        } catch (e: Exception) {
+            Log.e("FirebaseService", "Error fetching products", e)
+            emptyList()
+        }
+    }
+
     fun observeLatestProduct(): Flow<Map<String, Any>?> = callbackFlow {
         if (!isFirebaseConfigured()) {
             trySend(null)

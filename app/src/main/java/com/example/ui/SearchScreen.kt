@@ -64,6 +64,7 @@ import kotlinx.coroutines.flow.collectLatest
 
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.ui.res.painterResource
 import androidx.compose.animation.*
@@ -206,11 +207,15 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
     }
 
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
+    val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
+    PullToRefreshBox(
+        isRefreshing = isSyncing,
+        onRefresh = { viewModel.syncProductsFromFirebase() },
+        modifier = Modifier.fillMaxSize().background(Color.White)
     ) {
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
         // App Bar / Header (Hero Image)
         Box(
             modifier = Modifier
@@ -405,6 +410,7 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
                     }
                 }
             }
+        }
         }
     }
 }
