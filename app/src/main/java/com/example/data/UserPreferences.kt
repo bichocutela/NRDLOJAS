@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
@@ -38,6 +39,9 @@ class UserPreferences(private val context: Context) {
     val fontScale: Flow<Float> = context.dataStore.data.map { preferences ->
         preferences[FONT_SCALE] ?: 1.0f
     }
+    val bannerImageUri: Flow<String?> = context.dataStore.data.map { preferences ->
+        preferences[BANNER_IMAGE_URI]
+    }
     val notificationsEnabled: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[NOTIFICATIONS_ENABLED] ?: true
     }
@@ -65,6 +69,9 @@ class UserPreferences(private val context: Context) {
     suspend fun setFontScale(scale: Float) {
         context.dataStore.edit { it[FONT_SCALE] = scale }
     }
+    suspend fun setBannerImageUri(uri: String?) {
+        context.dataStore.edit { if (uri == null) it.remove(BANNER_IMAGE_URI) else it[BANNER_IMAGE_URI] = uri }
+    }
     suspend fun setNotificationsEnabled(enabled: Boolean) {
         context.dataStore.edit { it[NOTIFICATIONS_ENABLED] = enabled }
     }
@@ -77,5 +84,6 @@ class UserPreferences(private val context: Context) {
         val UPPERCASE_BOLD = booleanPreferencesKey("uppercase_bold")
         val NOTIFICATIONS_ENABLED = booleanPreferencesKey("notifications_enabled")
         val FONT_SCALE = floatPreferencesKey("font_scale")
+        val BANNER_IMAGE_URI = stringPreferencesKey("banner_image_uri")
     }
 }

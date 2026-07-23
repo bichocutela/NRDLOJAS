@@ -150,6 +150,7 @@ fun StylizedText(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
+    val bannerImageUri by viewModel.userPreferences.bannerImageUri.collectAsState(initial = null)
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
     val mostUsed by viewModel.mostUsed.collectAsStateWithLifecycle()
@@ -217,7 +218,7 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
                 modifier = Modifier.fillMaxSize()
             ) {
                 coil.compose.AsyncImage(
-                    model = R.drawable.hero_banner,
+                    model = bannerImageUri ?: R.drawable.hero_banner,
                     contentDescription = "Banner Nordestão",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
