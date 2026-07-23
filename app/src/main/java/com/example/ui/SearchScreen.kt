@@ -64,6 +64,7 @@ import kotlinx.coroutines.flow.collectLatest
 
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.ui.res.painterResource
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -155,6 +156,8 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
     val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
     val mostUsed by viewModel.mostUsed.collectAsStateWithLifecycle()
     val history by viewModel.history.collectAsStateWithLifecycle()
+    val latestProductLocal by viewModel.latestProductLocal.collectAsStateWithLifecycle()
+    val latestProductFirebase by viewModel.latestProduct.collectAsStateWithLifecycle()
     val favorites by viewModel.favorites.collectAsStateWithLifecycle()
     val newProductsCount by viewModel.newProductsCount.collectAsStateWithLifecycle()
 
@@ -364,6 +367,29 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
                         }
                     }
                 }
+                val dispName = latestProductFirebase?.get("name")?.toString() ?: latestProductLocal?.name
+                val dispCode = latestProductFirebase?.get("code")?.toString() ?: latestProductLocal?.code
+                if (dispName != null && dispCode != null) {
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.NewReleases, contentDescription = "Novo", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Adicionado recentemente: $dispName (Código: $dispCode)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                }
 
                 if (favorites.isNotEmpty()) {
                     item {
@@ -534,7 +560,8 @@ fun ProductCard(product: Product, viewModel: MainViewModel) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     text = product.code,
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontSize = 16.sp),
+                    
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
@@ -646,7 +673,7 @@ fun MiniProductCard(product: Product, viewModel: MainViewModel) {
             }
             Text(
                 text = product.code,
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black, fontSize = 24.sp, letterSpacing = (-1).sp),
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black, fontSize = 16.sp),
                 color = MaterialTheme.colorScheme.primary
             )
         }

@@ -19,6 +19,7 @@ class ProductRepository(
     val mostUsed: Flow<List<Product>> = dao.getMostUsed()
     val history: Flow<List<Product>> = dao.getHistory()
     val productsCountByCategory: Flow<List<CategoryCount>> = dao.getProductsCountByCategory()
+    val latestProductLocal = dao.getLatestProduct()
 
     fun searchProducts(query: String): Flow<List<Product>> {
         val normalizedQuery = query.unaccent().lowercase().trim()

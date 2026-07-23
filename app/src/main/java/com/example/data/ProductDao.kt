@@ -52,4 +52,6 @@ interface ProductDao {
     
     @Query("SELECT COUNT(*) FROM products")
     suspend fun getProductCount(): Int
+    @Query("SELECT * FROM products ORDER BY id DESC LIMIT 1")
+    fun getLatestProduct(): Flow<Product?>
 }

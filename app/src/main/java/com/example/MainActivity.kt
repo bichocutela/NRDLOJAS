@@ -108,6 +108,19 @@ class MainActivity : ComponentActivity() {
         setContent {
 
             val fontScale by userPreferences.fontScale.collectAsState(initial = 1.0f)
+            val latestFirebase by viewModel.latestProduct.collectAsState(null)
+            val latestLocal by viewModel.latestProductLocal.collectAsState(null)
+            val lastNotifiedCode by userPreferences.lastNotifiedProductCode.collectAsState(null)
+            val context = androidx.compose.ui.platform.LocalContext.current
+            
+            LaunchedEffect(latestFirebase, latestLocal, lastNotifiedCode) {
+                val dispName = latestFirebase?.get("name")?.toString() ?: latestLocal?.name
+                val dispCode = latestFirebase?.get("code")?.toString() ?: latestLocal?.code
+                if (dispName != null && dispCode != null && dispCode != lastNotifiedCode) {
+                    com.example.util.NotificationHelper.showNewProductNotification(context, dispName)
+                    userPreferences.setLastNotifiedProductCode(dispCode)
+                }
+            }
             val currentDensity = LocalDensity.current
             val customDensity = androidx.compose.ui.unit.Density(
                 density = currentDensity.density,

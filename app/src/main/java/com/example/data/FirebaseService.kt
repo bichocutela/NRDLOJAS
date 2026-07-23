@@ -11,6 +11,42 @@ import kotlinx.coroutines.channels.awaitClose
 import android.util.Log
 
 object FirebaseService {
+    suspend fun publishLatestProduct(product: com.example.data.Product) {
+        if (!isFirebaseConfigured()) return
+        try {
+            val firestore = FirebaseFirestore.getInstance()
+            firestore.collection("latest_product").document("latest")
+                .set(mapOf(
+                    "name" to product.name,
+                    "code" to product.code,
+                    "timestamp" to System.currentTimeMillis()
+                )).await()
+        } catch (e: Exception) {
+            Log.e("FirebaseService", "Error publishing latest product", e)
+        }
+    }
+
+    fun observeLatestProduct(): Flow<Map<String, Any>?> = callbackFlow {
+        if (!isFirebaseConfigured()) {
+            trySend(null)
+            close()
+            return@callbackFlow
+        }
+        val firestore = FirebaseFirestore.getInstance()
+        val registration = firestore.collection("latest_product").document("latest")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    trySend(null)
+                    return@addSnapshotListener
+                }
+                if (snapshot != null && snapshot.exists()) {
+                    trySend(snapshot.data)
+                } else {
+                    trySend(null)
+                }
+            }
+        awaitClose { registration.remove() }
+    }
     
     fun isFirebaseConfigured(): Boolean {
         return try {

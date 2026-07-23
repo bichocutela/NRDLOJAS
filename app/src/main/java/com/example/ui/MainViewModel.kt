@@ -22,15 +22,17 @@ import kotlinx.coroutines.launch
 
 class MainViewModel(private val repository: ProductRepository, val userPreferences: UserPreferences) : ViewModel() {
 
+    private val _latestProduct = MutableStateFlow<Map<String, Any>?>(null)
+    val latestProduct = _latestProduct.asStateFlow()
     init {
+        viewModelScope.launch {
+            com.example.data.FirebaseService.observeLatestProduct().collect {
+                _latestProduct.value = it
+            }
+        }
         viewModelScope.launch {
             repository.populateInitialDataIfNeeded()
             viewModelScope.launch { 
-                com.example.data.FirebaseService.observeBannerUrl().collect { url -> 
-                    if (url != null) { 
-                        userPreferences.setBannerImageUri(url) 
-                    } 
-                } 
             }
         }
     }
@@ -59,6 +61,7 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
     val history = repository.history.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val allProducts = repository.allProducts.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val productsCountByCategory = repository.productsCountByCategory.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val latestProductLocal = repository.latestProductLocal.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     
     val searchResults: StateFlow<List<Product>> = _searchQuery
         .debounce(300)
@@ -180,6 +183,7 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
                 unit = unit
             )
             repository.insertProduct(product)
+            com.example.data.FirebaseService.publishLatestProduct(product)
             _newProductsCount.value += 1
         }
     }

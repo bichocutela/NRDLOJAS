@@ -144,7 +144,6 @@ fun MestreScreen(
                                     inputStream?.close()
                                     outputStream.close()
                                     viewModel.userPreferences.setBannerImageUri(file.absolutePath)
-                                    com.example.data.FirebaseService.uploadBanner(android.net.Uri.fromFile(file))
                                     android.widget.Toast.makeText(context, "Fundo alterado com sucesso!", android.widget.Toast.LENGTH_SHORT).show()
                                 } catch (e: Exception) {
                                     android.widget.Toast.makeText(context, "Erro ao salvar imagem", android.widget.Toast.LENGTH_SHORT).show()
