@@ -213,12 +213,18 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
                 .fillMaxWidth()
                 .height(180.dp) // Adjust height as needed for immersion
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.hero_banner),
-                contentDescription = "Banner Nordestão",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "NRD Códigos Correlatos",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            }
             
             // Hamburger Menu overlay
             IconButton(

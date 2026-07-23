@@ -17,6 +17,7 @@ import androidx.compose.ui.res.painterResource
 
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.LaunchedEffect
@@ -123,9 +124,10 @@ class MainActivity : ComponentActivity() {
                                     .background(Color.White),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.splash_logo),
+                                Icon(
+                                    imageVector = Icons.Default.ShoppingCart,
                                     contentDescription = "Logo",
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(150.dp)
                                 )
                             }
