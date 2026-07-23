@@ -1,5 +1,6 @@
 package com.example.ui
 
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
@@ -23,6 +24,11 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.background
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
@@ -430,7 +436,23 @@ fun AdminProductItem(product: Product, viewModel: MainViewModel) {
     var isEditing by remember { mutableStateOf(false) }
     var editCode by remember(product.code) { mutableStateOf(product.code) }
     var editName by remember(product.name) { mutableStateOf(product.name) }
+    var editImageUrl by remember(product.imageUrl) { mutableStateOf(product.imageUrl ?: "") }
+    val context = LocalContext.current
     
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        uri?.let {
+            try {
+                val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                context.contentResolver.takePersistableUriPermission(it, flag)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            editImageUrl = it.toString()
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -443,6 +465,31 @@ fun AdminProductItem(product: Product, viewModel: MainViewModel) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                if (product.imageUrl != null) {
+                    AsyncImage(
+                        model = product.imageUrl,
+                        contentDescription = product.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = product.name.take(1).uppercase(),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(16.dp))
                 Text(text = product.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
                 IconButton(onClick = { isEditing = !isEditing }) {
                     Icon(if (isEditing) Icons.Default.Close else Icons.Default.Edit, contentDescription = "Editar")
@@ -464,10 +511,29 @@ fun AdminProductItem(product: Product, viewModel: MainViewModel) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = editImageUrl,
+                    onValueChange = { editImageUrl = it },
+                    label = { Text("URL da Imagem ou Escolher Foto") },
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = {
+                        IconButton(onClick = {
+                            launcher.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        }) {
+                            Icon(Icons.Default.AddAPhoto, contentDescription = "Escolher Foto")
+                        }
+                    }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
                 Button(
                     onClick = {
                         val searchName = editName.lowercase().replace(Regex("[áàâã]"), "a").replace(Regex("[éèê]"), "e").replace(Regex("[íìî]"), "i").replace(Regex("[óòôõ]"), "o").replace(Regex("[úùû]"), "u").replace(Regex("[ç]"), "c")
-                        viewModel.updateProduct(product.copy(code = editCode, name = editName, searchName = searchName))
+                        viewModel.updateProduct(product.copy(
+                            code = editCode, 
+                            name = editName, 
+                            searchName = searchName,
+                            imageUrl = editImageUrl.ifBlank { null }
+                        ))
                         isEditing = false
                     },
                     modifier = Modifier.align(Alignment.End)
