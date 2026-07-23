@@ -142,8 +142,8 @@ class MainActivity : ComponentActivity() {
                                     .background(Color.White),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.splash_logo),
+                                coil.compose.AsyncImage(
+                                    model = R.drawable.splash_logo,
                                     contentDescription = "Logo",
                                     modifier = Modifier.size(150.dp)
                                 )

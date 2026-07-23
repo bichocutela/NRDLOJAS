@@ -216,8 +216,8 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
             Box(
                 modifier = Modifier.fillMaxSize()
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.hero_banner),
+                coil.compose.AsyncImage(
+                    model = R.drawable.hero_banner,
                     contentDescription = "Banner Nordestão",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
