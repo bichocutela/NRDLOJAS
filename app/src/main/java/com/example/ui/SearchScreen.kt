@@ -165,7 +165,7 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
                 .height(180.dp) // Adjust height as needed for immersion
         ) {
             Image(
-                painter = painterResource(id = R.drawable.hero_banner),
+                painter = painterResource(id = R.drawable.ic_launcher_background),
                 contentDescription = "Banner Nordestão",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()

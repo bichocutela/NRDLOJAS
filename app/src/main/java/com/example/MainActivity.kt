@@ -110,7 +110,7 @@ class MainActivity : ComponentActivity() {
                                 contentAlignment = Alignment.Center
                             ) {
                                 Image(
-                                    painter = painterResource(id = R.drawable.splash_logo),
+                                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
                                     contentDescription = "Logo",
                                     modifier = Modifier.size(150.dp)
                                 )
