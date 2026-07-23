@@ -124,10 +124,9 @@ class MainActivity : ComponentActivity() {
                                     .background(Color.White),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.ShoppingCart,
+                                Image(
+                                    painter = painterResource(id = R.drawable.splash_logo),
                                     contentDescription = "Logo",
-                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(150.dp)
                                 )
                             }

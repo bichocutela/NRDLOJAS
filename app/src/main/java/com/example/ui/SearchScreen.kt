@@ -214,15 +214,22 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
                 .height(180.dp) // Adjust height as needed for immersion
         ) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.primary),
-                contentAlignment = Alignment.Center
+                modifier = Modifier.fillMaxSize()
             ) {
+                Image(
+                    painter = painterResource(id = R.drawable.hero_banner),
+                    contentDescription = "Banner Nordestão",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
                 Text(
                     text = "NRD Códigos Correlatos",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onPrimary
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color(0xFFE31B23), // Red color
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 8.dp)
                 )
             }
             
