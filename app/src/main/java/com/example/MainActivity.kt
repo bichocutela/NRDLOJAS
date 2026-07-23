@@ -16,6 +16,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
 
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Favorite
@@ -67,6 +68,23 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val crashLog = CrashReporter.getCrashLog(this)
+        if (crashLog != null) {
+            CrashReporter.clearCrashLog(this)
+            setContent {
+                androidx.compose.material3.MaterialTheme {
+                    androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                        androidx.compose.foundation.lazy.LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            item {
+                                androidx.compose.material3.Text("App crashed previously with error:\n\n$crashLog", color = Color.Red)
+                            }
+                        }
+                    }
+                }
+            }
+            return
+        }
         
 
         
