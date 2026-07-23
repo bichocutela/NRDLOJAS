@@ -25,6 +25,13 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
     init {
         viewModelScope.launch {
             repository.populateInitialDataIfNeeded()
+            viewModelScope.launch { 
+                com.example.data.FirebaseService.observeBannerUrl().collect { url -> 
+                    if (url != null) { 
+                        userPreferences.setBannerImageUri(url) 
+                    } 
+                } 
+            }
         }
     }
 

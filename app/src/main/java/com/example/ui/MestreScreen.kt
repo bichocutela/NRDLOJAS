@@ -115,27 +115,51 @@ fun MestreScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             Spacer(modifier = Modifier.height(16.dp))
+            var showConfirmDialog by remember { mutableStateOf(false) }
+            var selectedUri by remember { mutableStateOf<android.net.Uri?>(null) }
             val context = androidx.compose.ui.platform.LocalContext.current
             val coroutineScope = rememberCoroutineScope()
             val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
                 contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
             ) { uri: android.net.Uri? ->
                 uri?.let {
-                    coroutineScope.launch {
-                        try {
-                            val inputStream = context.contentResolver.openInputStream(uri)
-                            val file = java.io.File(context.filesDir, "custom_hero_banner.jpg")
-                            val outputStream = java.io.FileOutputStream(file)
-                            inputStream?.copyTo(outputStream)
-                            inputStream?.close()
-                            outputStream.close()
-                            viewModel.userPreferences.setBannerImageUri(file.absolutePath)
-                            android.widget.Toast.makeText(context, "Fundo alterado com sucesso!", android.widget.Toast.LENGTH_SHORT).show()
-                        } catch (e: Exception) {
-                            android.widget.Toast.makeText(context, "Erro ao salvar imagem", android.widget.Toast.LENGTH_SHORT).show()
+                    selectedUri = it
+                    showConfirmDialog = true
+                }
+            }
+            if (showConfirmDialog && selectedUri != null) {
+                AlertDialog(
+                    onDismissRequest = { showConfirmDialog = false },
+                    title = { Text("Alterar Fundo") },
+                    text = { Text("Tem certeza que deseja alterar a imagem de fundo de todos os usuários?") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            showConfirmDialog = false
+                            coroutineScope.launch {
+                                try {
+                                    val inputStream = context.contentResolver.openInputStream(selectedUri!!)
+                                    val file = java.io.File(context.filesDir, "custom_hero_banner.jpg")
+                                    val outputStream = java.io.FileOutputStream(file)
+                                    inputStream?.copyTo(outputStream)
+                                    inputStream?.close()
+                                    outputStream.close()
+                                    viewModel.userPreferences.setBannerImageUri(file.absolutePath)
+                                    com.example.data.FirebaseService.uploadBanner(android.net.Uri.fromFile(file))
+                                    android.widget.Toast.makeText(context, "Fundo alterado com sucesso!", android.widget.Toast.LENGTH_SHORT).show()
+                                } catch (e: Exception) {
+                                    android.widget.Toast.makeText(context, "Erro ao salvar imagem", android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }) {
+                            Text("Confirmar")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showConfirmDialog = false }) {
+                            Text("Cancelar")
                         }
                     }
-                }
+                )
             }
             OutlinedCard(
                 modifier = Modifier.fillMaxWidth(),

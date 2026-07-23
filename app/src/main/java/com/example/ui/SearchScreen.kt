@@ -218,7 +218,7 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
                 modifier = Modifier.fillMaxSize()
             ) {
                 coil.compose.AsyncImage(
-                    model = bannerImageUri ?: R.drawable.hero_banner,
+                    model = bannerImageUri?.takeIf { it.isNotEmpty() } ?: R.drawable.hero_banner,
                     contentDescription = "Banner Nordestão",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
