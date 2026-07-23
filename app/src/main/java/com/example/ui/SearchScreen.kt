@@ -29,6 +29,10 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.BakeryDining
@@ -153,6 +157,51 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
     val favorites by viewModel.favorites.collectAsStateWithLifecycle()
     val newProductsCount by viewModel.newProductsCount.collectAsStateWithLifecycle()
 
+    var isScannerOpen by remember { mutableStateOf(false) }
+
+    if (isScannerOpen) {
+        BarcodeScannerScreen(
+            onBarcodeScanned = { code ->
+                viewModel.updateSearchQuery(code)
+                isScannerOpen = false
+            },
+            onClose = { isScannerOpen = false }
+        )
+        return // Return early so we don't show the rest of the screen
+    }
+
+
+    val aiProductDetails by viewModel.aiProductDetails.collectAsStateWithLifecycle()
+    val isAiLoading by viewModel.isAiLoading.collectAsStateWithLifecycle()
+
+    if (isAiLoading || aiProductDetails != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.clearAiProductDetails() },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Detalhes com IA")
+                }
+            },
+            text = {
+                if (isAiLoading) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    Text(aiProductDetails ?: "")
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.clearAiProductDetails() }) {
+                    Text("Fechar")
+                }
+            }
+        )
+    }
+
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -165,7 +214,7 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
                 .height(180.dp) // Adjust height as needed for immersion
         ) {
             Image(
-                painter = painterResource(id = R.drawable.ic_launcher_background),
+                painter = painterResource(id = R.drawable.hero_banner),
                 contentDescription = "Banner Nordestão",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
@@ -217,7 +266,11 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
                             IconButton(onClick = { viewModel.updateSearchQuery("") }) {
                                 Icon(Icons.Default.Clear, contentDescription = "Limpar")
                             }
+
                         } else {
+                            IconButton(onClick = { isScannerOpen = true }) {
+                                Icon(Icons.Default.CameraAlt, contentDescription = "Scanner QR", tint = MaterialTheme.colorScheme.primary)
+                            }
                             IconButton(onClick = { /* TODO Voice Search */ }) {
                                 Icon(Icons.Default.Mic, contentDescription = "Voz", tint = MaterialTheme.colorScheme.primary)
                             }
@@ -477,8 +530,17 @@ fun ProductCard(product: Product, viewModel: MainViewModel) {
                 )
             }
         }
+
+        Spacer(modifier = Modifier.width(8.dp))
+        androidx.compose.material3.IconButton(
+            onClick = { viewModel.consultProductInfoAi(product) },
+            modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer, CircleShape)
+        ) {
+            Icon(Icons.Default.AutoAwesome, contentDescription = "IA Info", tint = MaterialTheme.colorScheme.onTertiaryContainer)
+        }
     }
 }
+
 
 @Composable
 fun MiniProductCard(product: Product, viewModel: MainViewModel) {

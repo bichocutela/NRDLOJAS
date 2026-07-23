@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.floatPreferencesKey
+
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -33,6 +35,9 @@ class UserPreferences(private val context: Context) {
         preferences[UPPERCASE_BOLD] ?: false
     }
 
+    val fontScale: Flow<Float> = context.dataStore.data.map { preferences ->
+        preferences[FONT_SCALE] ?: 1.0f
+    }
     val notificationsEnabled: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[NOTIFICATIONS_ENABLED] ?: true
     }
@@ -57,6 +62,9 @@ class UserPreferences(private val context: Context) {
         context.dataStore.edit { it[UPPERCASE_BOLD] = enabled }
     }
 
+    suspend fun setFontScale(scale: Float) {
+        context.dataStore.edit { it[FONT_SCALE] = scale }
+    }
     suspend fun setNotificationsEnabled(enabled: Boolean) {
         context.dataStore.edit { it[NOTIFICATIONS_ENABLED] = enabled }
     }
@@ -68,5 +76,6 @@ class UserPreferences(private val context: Context) {
         val BOLD_OUTLINE = booleanPreferencesKey("bold_outline")
         val UPPERCASE_BOLD = booleanPreferencesKey("uppercase_bold")
         val NOTIFICATIONS_ENABLED = booleanPreferencesKey("notifications_enabled")
+        val FONT_SCALE = floatPreferencesKey("font_scale")
     }
 }

@@ -23,6 +23,7 @@ fun SettingsScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
     val vibrateOnClick by viewModel.userPreferences.vibrateOnClick.collectAsState(initial = true)
     val vibrateOnFound by viewModel.userPreferences.vibrateOnFound.collectAsState(initial = true)
     val largeText by viewModel.userPreferences.largeText.collectAsState(initial = false)
+    val fontScale by viewModel.userPreferences.fontScale.collectAsState(initial = 1.0f)
     val boldOutline by viewModel.userPreferences.boldOutline.collectAsState(initial = false)
     val uppercaseBold by viewModel.userPreferences.uppercaseBold.collectAsState(initial = false)
     val notificationsEnabled by viewModel.userPreferences.notificationsEnabled.collectAsState(initial = true)
@@ -57,6 +58,22 @@ fun SettingsScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
         ) {
             
             Text("Preferências de Interface", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Tamanho da Fonte", modifier = Modifier.weight(1f))
+                Slider(
+                    value = fontScale,
+                    onValueChange = { coroutineScope.launch { viewModel.userPreferences.setFontScale(it) } },
+                    valueRange = 0.8f..2.0f,
+                    steps = 11,
+                    modifier = Modifier.weight(2f).padding(horizontal = 16.dp)
+                )
+                Text(String.format("%.1fx", fontScale))
+            }
+            Button(onClick = { coroutineScope.launch { viewModel.userPreferences.setFontScale(1.0f) } }, modifier = Modifier.align(Alignment.End)) {
+                Text("Restaurar Padrão")
+            }
+
             
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Aumentar letras da tela inicial")

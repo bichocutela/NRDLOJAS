@@ -37,6 +37,13 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
     private val _chatMessages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val chatMessages = _chatMessages.asStateFlow()
 
+    private val _aiProductDetails = MutableStateFlow<String?>(null)
+    val aiProductDetails = _aiProductDetails.asStateFlow()
+
+    private val _isAiLoading = MutableStateFlow(false)
+    val isAiLoading = _isAiLoading.asStateFlow()
+
+
     private val _newProductsCount = MutableStateFlow(0)
     val newProductsCount: StateFlow<Int> = _newProductsCount.asStateFlow()
 
@@ -75,6 +82,30 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
 
     fun updateChatInput(input: String) {
         _chatInput.value = input
+    }
+
+
+    fun consultProductInfoAi(product: Product) {
+        viewModelScope.launch {
+            _isAiLoading.value = true
+            _aiProductDetails.value = null
+            try {
+                val prompt = "Forneça informações detalhadas sobre o produto de supermercado: ${product.name} (Categoria: ${product.category}). Inclua dicas de uso, armazenamento ou curiosidades. Seja breve e informativo."
+                val request = GenerateContentRequest(
+                    contents = listOf(Content(parts = listOf(Part(text = prompt))))
+                )
+                val response = RetrofitClient.service.generateContent(BuildConfig.GEMINI_API_KEY, request)
+                _aiProductDetails.value = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: "Informações não disponíveis."
+            } catch (e: Exception) {
+                _aiProductDetails.value = "Erro ao buscar informações: ${e.message}"
+            } finally {
+                _isAiLoading.value = false
+            }
+        }
+    }
+    
+    fun clearAiProductDetails() {
+        _aiProductDetails.value = null
     }
 
     fun sendChatMessage() {

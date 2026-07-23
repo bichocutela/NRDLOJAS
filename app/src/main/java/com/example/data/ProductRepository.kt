@@ -87,6 +87,17 @@ class ProductRepository(
     }
 
     suspend fun populateInitialDataIfNeeded() {
+
+        // Force add new products if they don't exist
+        val existing1 = dao.searchProductsSync("257806")
+        if (existing1.isEmpty()) {
+            dao.insertProducts(listOf(Product(code = "257806", name = "Pão Baguete com Queijo", searchName = "pao baguete com queijo", category = "Padaria", unit = "un", searchCount = 0, imageUrl = "https://images.unsplash.com/photo-1549931319-a545dcf3bc73?auto=format&fit=crop&w=150&q=80")))
+        }
+        val existing2 = dao.searchProductsSync("257822")
+        if (existing2.isEmpty()) {
+            dao.insertProducts(listOf(Product(code = "257822", name = "Pão Delícia Trançada Queijo", searchName = "pao delicia trancada queijo", category = "Padaria", unit = "un", searchCount = 0, imageUrl = "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=150&q=80")))
+        }
+
         if (dao.getProductCount() == 0) {
             val initialProducts = listOf(
                 Product(code = "1205", name = "Pão Francês", searchName = "pao frances", category = "Padaria", unit = "kg", searchCount = 100, imageUrl = "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=150&q=80"),
@@ -103,6 +114,9 @@ class ProductRepository(
                 Product(code = "1101", name = "Refrigerante Coca-Cola 2L", searchName = "refrigerante coca cola 2l", category = "Bebidas", unit = "un", searchCount = 30),
                 Product(code = "5501", name = "Picanha Bovina", searchName = "picanha bovina carne", category = "Açougue", unit = "kg", searchCount = 45, imageUrl = "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=150&q=80"),
                 
+                
+                Product(code = "257806", name = "Pão Baguete com Queijo", searchName = "pao baguete com queijo", category = "Padaria", unit = "un", searchCount = 0, imageUrl = "https://images.unsplash.com/photo-1549931319-a545dcf3bc73?auto=format&fit=crop&w=150&q=80"),
+                Product(code = "257822", name = "Pão Delícia Trançada Queijo", searchName = "pao delicia trancada queijo", category = "Padaria", unit = "un", searchCount = 0, imageUrl = "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=150&q=80"),
                 // Produtos da imagem
                 Product(code = "254304", name = "Filé de Peito Bom Todo", searchName = "file peito frango bom todo", category = "Açougue", unit = "kg", searchCount = 10, imageUrl = "https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=150&q=80"),
                 Product(code = "254311", name = "Asa de Frango Bom Todo", searchName = "asa frango bom todo", category = "Açougue", unit = "kg", searchCount = 9, imageUrl = "https://images.unsplash.com/photo-1598514982205-f36b96d1e8d4?auto=format&fit=crop&w=150&q=80"),

@@ -29,6 +29,10 @@ import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.delay
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+
 import androidx.room.Room
 import com.example.data.AppDatabase
 import com.example.data.ProductRepository
@@ -83,7 +87,17 @@ class MainActivity : ComponentActivity() {
         
         enableEdgeToEdge()
         setContent {
-            MyApplicationTheme {
+
+            val fontScale by userPreferences.fontScale.collectAsState(initial = 1.0f)
+            val currentDensity = LocalDensity.current
+            val customDensity = androidx.compose.ui.unit.Density(
+                density = currentDensity.density,
+                fontScale = currentDensity.fontScale * fontScale
+            )
+
+            CompositionLocalProvider(LocalDensity provides customDensity) {
+                MyApplicationTheme {
+
                 var showSplash by remember { mutableStateOf(true) }
                 
                 LaunchedEffect(Unit) {
@@ -110,7 +124,7 @@ class MainActivity : ComponentActivity() {
                                 contentAlignment = Alignment.Center
                             ) {
                                 Image(
-                                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                                    painter = painterResource(id = R.drawable.splash_logo),
                                     contentDescription = "Logo",
                                     modifier = Modifier.size(150.dp)
                                 )
@@ -118,6 +132,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+            }
             }
         }
     }
