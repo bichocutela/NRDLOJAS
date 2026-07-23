@@ -87,37 +87,6 @@ fun AppNavGraph(viewModel: MainViewModel) {
         }
     ) {
         Scaffold(
-            bottomBar = {
-                NavigationBar {
-                    val navBackStackEntry by navController.currentBackStackEntryAsState()
-                    val currentDestination = navBackStackEntry?.destination
-
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Default.Search, contentDescription = "Pesquisa") },
-                        label = { Text("Pesquisa") },
-                        selected = currentDestination?.hierarchy?.any { it.route == "search" } == true,
-                        onClick = {
-                            navController.navigate("search") {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    )
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Default.AutoAwesome, contentDescription = "Assistente") },
-                        label = { Text("Assistente IA") },
-                        selected = currentDestination?.hierarchy?.any { it.route == "assistant" } == true,
-                        onClick = {
-                            navController.navigate("assistant") {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    )
-                }
-            }
         ) { innerPadding ->
             NavHost(
                 navController = navController,
@@ -341,16 +310,22 @@ fun LoginDrawerContent(
         )
         Spacer(modifier = Modifier.height(16.dp))
         
-        categories.forEach { categoryCount ->
+        val allCategoriesList = remember(categories) {
+            val defaultCategories = listOf("Hortifruti", "Açougue", "Padaria", "Frios", "Bebidas", "Mercearia", "Limpeza", "Higiene", "Laticínios", "Congelados", "Bazar", "Pet Shop")
+            val dbCategories = categories.map { it.category }
+            (dbCategories + defaultCategories).distinct().sorted()
+        }
+
+        allCategoriesList.forEach { categoryName ->
             CategoryItem(
-                category = categoryCount.category,
+                category = categoryName,
                 viewModel = viewModel,
-                isExpanded = expandedCategory == categoryCount.category,
+                isExpanded = expandedCategory == categoryName,
                 onExpandToggle = {
-                    if (expandedCategory == categoryCount.category) {
+                    if (expandedCategory == categoryName) {
                         expandedCategory = null
                     } else {
-                        expandedCategory = categoryCount.category
+                        expandedCategory = categoryName
                     }
                 }
             )
