@@ -8,10 +8,31 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import kotlinx.coroutines.delay
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Modifier
 import androidx.room.Room
 import com.example.data.AppDatabase
 import com.example.data.ProductRepository
+import com.example.data.UserPreferences
 import com.example.ui.AppNavGraph
 import com.example.ui.MainViewModel
 import com.example.ui.MainViewModelFactory
@@ -31,13 +52,18 @@ class MainActivity : ComponentActivity() {
     private val repository by lazy {
         ProductRepository(db.productDao())
     }
+    private val userPreferences by lazy {
+        UserPreferences(applicationContext)
+    }
 
     private val viewModel: MainViewModel by viewModels {
-        MainViewModelFactory(repository)
+        MainViewModelFactory(repository, userPreferences)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+
         
         NotificationHelper.createNotificationChannel(this)
         
@@ -58,11 +84,39 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme {
+                var showSplash by remember { mutableStateOf(true) }
+                
+                LaunchedEffect(Unit) {
+                    delay(1500)
+                    showSplash = false
+                }
+                
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AppNavGraph(viewModel)
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        AppNavGraph(viewModel)
+                        
+                        AnimatedVisibility(
+                            visible = showSplash,
+                            enter = fadeIn(animationSpec = tween(500)),
+                            exit = fadeOut(animationSpec = tween(500))
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.White),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.logo_nordestao),
+                                    contentDescription = "Logo",
+                                    modifier = Modifier.size(150.dp)
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

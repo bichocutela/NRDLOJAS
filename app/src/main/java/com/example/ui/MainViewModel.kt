@@ -9,6 +9,7 @@ import com.example.api.Part
 import com.example.api.RetrofitClient
 import com.example.data.Product
 import com.example.data.ProductRepository
+import com.example.data.UserPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +20,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class MainViewModel(private val repository: ProductRepository) : ViewModel() {
+class MainViewModel(private val repository: ProductRepository, val userPreferences: UserPreferences) : ViewModel() {
 
     init {
         viewModelScope.launch {

@@ -2,8 +2,16 @@ package com.example.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import androidx.room.Index
 
-@Entity(tableName = "products")
+@Entity(
+    tableName = "products",
+    indices = [
+        Index(value = ["searchName"]),
+        Index(value = ["code"]),
+        Index(value = ["category"])
+    ]
+)
 data class Product(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val code: String,

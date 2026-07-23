@@ -3,12 +3,12 @@ import re
 with open("app/src/main/java/com/example/ui/MainViewModel.kt", "r") as f:
     content = f.read()
 
-replacement = """
-    fun getProductsByCategory(category: String) = repository.getProductsByCategory(category)
+if "import com.example.data.UserPreferences" not in content:
+    content = content.replace("import com.example.data.ProductRepository", "import com.example.data.ProductRepository\nimport com.example.data.UserPreferences")
 
-    fun addProduct(name: String, code: String, category: String, unit: String) {"""
-
-content = content.replace("    fun addProduct(name: String, code: String, category: String, unit: String) {", replacement)
+old_class = "class MainViewModel(private val repository: ProductRepository) : ViewModel() {"
+new_class = "class MainViewModel(private val repository: ProductRepository, val userPreferences: UserPreferences) : ViewModel() {"
+content = content.replace(old_class, new_class)
 
 with open("app/src/main/java/com/example/ui/MainViewModel.kt", "w") as f:
     f.write(content)

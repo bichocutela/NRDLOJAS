@@ -1,0 +1,141 @@
+package com.example.ui
+
+import android.widget.Toast
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    
+    val vibrateOnClick by viewModel.userPreferences.vibrateOnClick.collectAsState(initial = true)
+    val vibrateOnFound by viewModel.userPreferences.vibrateOnFound.collectAsState(initial = true)
+    val largeText by viewModel.userPreferences.largeText.collectAsState(initial = false)
+    val boldOutline by viewModel.userPreferences.boldOutline.collectAsState(initial = false)
+    val uppercaseBold by viewModel.userPreferences.uppercaseBold.collectAsState(initial = false)
+    val notificationsEnabled by viewModel.userPreferences.notificationsEnabled.collectAsState(initial = true)
+
+    var showSuggestionDialog by remember { mutableStateOf(false) }
+    var suggestionText by remember { mutableStateOf("") }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Configurações") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            
+            Text("Preferências de Interface", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Aumentar letras da tela inicial")
+                Switch(checked = largeText, onCheckedChange = { coroutineScope.launch { viewModel.userPreferences.setLargeText(it) } })
+            }
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Letras em contorno negrito")
+                Switch(checked = boldOutline, onCheckedChange = { coroutineScope.launch { viewModel.userPreferences.setBoldOutline(it) } })
+            }
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Todas letras maiúsculas em negrito")
+                Switch(checked = uppercaseBold, onCheckedChange = { coroutineScope.launch { viewModel.userPreferences.setUppercaseBold(it) } })
+            }
+            
+            HorizontalDivider()
+            
+            Text("Vibração", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Vibrar ao clicar no balão")
+                Switch(checked = vibrateOnClick, onCheckedChange = { coroutineScope.launch { viewModel.userPreferences.setVibrateOnClick(it) } })
+            }
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Vibrar ao achar produto")
+                Switch(checked = vibrateOnFound, onCheckedChange = { coroutineScope.launch { viewModel.userPreferences.setVibrateOnFound(it) } })
+            }
+            
+            HorizontalDivider()
+            
+            Text("Notificações", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Notificar alterações de produto")
+                Switch(checked = notificationsEnabled, onCheckedChange = { coroutineScope.launch { viewModel.userPreferences.setNotificationsEnabled(it) } })
+            }
+
+            HorizontalDivider()
+            
+            Text("Feedback", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            
+            Button(
+                onClick = { showSuggestionDialog = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Enviar Sugestão de Melhoria")
+            }
+        }
+    }
+
+    if (showSuggestionDialog) {
+        AlertDialog(
+            onDismissRequest = { showSuggestionDialog = false },
+            title = { Text("Sugestão") },
+            text = {
+                OutlinedTextField(
+                    value = suggestionText,
+                    onValueChange = { suggestionText = it },
+                    label = { Text("Descreva sua sugestão") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3
+                )
+            },
+            confirmButton = {
+                Button(onClick = { 
+                    showSuggestionDialog = false
+                    suggestionText = ""
+                    Toast.makeText(context, "Agradecemos pela sua sugestão! Ela será visível para o ADM.", Toast.LENGTH_LONG).show()
+                }) {
+                    Text("Enviar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSuggestionDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+}

@@ -1,5 +1,5 @@
 {
-  "name": "Código Produto",
+  "name": "NRD Códigos",
   "description": "App para pesquisar códigos de produtos no mercado, com busca offline, histórico, favoritos e IA.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

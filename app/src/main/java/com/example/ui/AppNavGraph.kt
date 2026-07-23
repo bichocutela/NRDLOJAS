@@ -58,6 +58,7 @@ fun AppNavGraph(viewModel: MainViewModel) {
                             restoreState = true
                         }
                     },
+                    onGoToSettings = { scope.launch { drawerState.close() }; navController.navigate("settings") },
                     onGoToAdmin = {
                         scope.launch { drawerState.close() }
                         navController.navigate("admin")
@@ -115,6 +116,11 @@ fun AppNavGraph(viewModel: MainViewModel) {
                         navController.popBackStack()
                     })
                 }
+                composable("settings") {
+                    SettingsScreen(viewModel, onNavigateBack = {
+                        navController.popBackStack()
+                    })
+                }
             }
         }
     }
@@ -126,7 +132,8 @@ fun LoginDrawerContent(
     isLoggedIn: Boolean,
     onLoginSuccess: () -> Unit,
     onLogout: () -> Unit,
-    onGoToAdmin: () -> Unit
+    onGoToAdmin: () -> Unit,
+    onGoToSettings: () -> Unit
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }

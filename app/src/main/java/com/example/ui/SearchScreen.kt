@@ -1,4 +1,5 @@
 package com.example.ui
+import androidx.compose.ui.layout.ContentScale
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -43,22 +44,104 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.flow.collectLatest
+
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.ui.window.Dialog
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.Image
+import com.example.R
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.graphics.drawscope.Stroke
+import android.os.Vibrator
+import android.content.Context
+import android.os.VibrationEffect
+import android.os.Build
+
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.border
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
-import androidx.compose.ui.layout.ContentScale
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
 import com.example.data.Product
+import android.graphics.Bitmap
+import androidx.compose.ui.graphics.FilterQuality
+import com.google.zxing.EncodeHintType
+import java.util.EnumMap
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.MultiFormatWriter
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.ui.window.Dialog
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.ImageBitmap
+
+
+@Composable
+fun StylizedText(
+    text: String,
+    baseStyle: TextStyle,
+    largeText: Boolean,
+    boldOutline: Boolean,
+    uppercaseBold: Boolean,
+    color: Color = Color.Unspecified,
+    modifier: Modifier = Modifier
+) {
+    val finalText = if (uppercaseBold) text.uppercase() else text
+    val weight = if (uppercaseBold || boldOutline) FontWeight.Bold else baseStyle.fontWeight
+    val fontSize = if (largeText) baseStyle.fontSize * 1.3f else baseStyle.fontSize
+    
+    val styleWithMods = baseStyle.copy(
+        fontWeight = weight,
+        fontSize = fontSize,
+        color = if (boldOutline) Color.Transparent else color
+    )
+    
+    Box(modifier = modifier) {
+        if (boldOutline) {
+            androidx.compose.material3.Text(
+                text = finalText,
+                style = styleWithMods.copy(
+                    drawStyle = Stroke(width = 2f)
+                ),
+                color = color
+            )
+        }
+        androidx.compose.material3.Text(
+            text = finalText,
+            style = styleWithMods,
+            color = if (boldOutline) Color.White else color
+        )
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,19 +156,31 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(Color.White)
     ) {
-        // App Bar / Header
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
+        // App Bar / Header (Hero Image)
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 48.dp, start = 8.dp, end = 16.dp, bottom = 16.dp)
+                .height(180.dp) // Adjust height as needed for immersion
         ) {
-            IconButton(onClick = {
-                viewModel.clearNewProductsCount()
-                onOpenDrawer()
-            }) {
+            Image(
+                painter = painterResource(id = R.drawable.hero_banner),
+                contentDescription = "Banner Nordestão",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+            
+            // Hamburger Menu overlay
+            IconButton(
+                onClick = {
+                    viewModel.clearNewProductsCount()
+                    onOpenDrawer()
+                },
+                modifier = Modifier
+                    .padding(top = 48.dp, start = 8.dp)
+                    .background(Color.Transparent) // Transparent background
+            ) {
                 BadgedBox(
                     badge = {
                         if (newProductsCount > 0) {
@@ -93,20 +188,20 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
                         }
                     }
                 ) {
-                    Icon(Icons.Default.Menu, contentDescription = "Menu")
+                    Icon(
+                        imageVector = Icons.Default.Menu, 
+                        contentDescription = "Menu",
+                        tint = Color.White // White icon for visibility over the banner
+                    )
                 }
             }
-            Spacer(modifier = Modifier.weight(1f))
-            NordestaoLogo()
-            Spacer(modifier = Modifier.weight(1f))
-            // Empty box to balance the menu icon
-            Box(modifier = Modifier.size(48.dp))
         }
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Custom Search Bar
-        Row(
+        Column(
             modifier = Modifier.padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             SearchBar(
                 query = searchQuery,
@@ -114,8 +209,8 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
                 onSearch = { },
                 active = false,
                 onActiveChange = { },
-                placeholder = { Text("Nome...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Pesquisar") },
+                placeholder = { Text("Pesquisar produto...", style = MaterialTheme.typography.bodyLarge) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Pesquisar", modifier = Modifier.size(28.dp)) },
                 trailingIcon = {
                     Row {
                         if (searchQuery.isNotEmpty()) {
@@ -130,26 +225,26 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
                     }
                 },
                 modifier = Modifier
-                    .weight(1f)
-                    .background(Color.White, RoundedCornerShape(24.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(24.dp)),
+                    .fillMaxWidth()
+                    .background(Color.White, RoundedCornerShape(32.dp))
+                    .border(2.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(32.dp)),
                 colors = SearchBarDefaults.colors(
                     containerColor = Color.Transparent,
                     dividerColor = Color.Transparent,
                 )
             ) {}
             
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             
             Button(
                 onClick = { /* Do search */ },
-                shape = RoundedCornerShape(24.dp), // Estilo balão
-                modifier = Modifier.height(56.dp),
+                shape = RoundedCornerShape(32.dp), // Estilo balão gigante
+                modifier = Modifier.fillMaxWidth().height(64.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
             ) {
-                Text("PESQUISAR", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("PESQUISAR PRODUTO", fontWeight = FontWeight.Black, fontSize = 18.sp, letterSpacing = 1.sp)
             }
         }
 
@@ -172,7 +267,7 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
                 item {
-                    CategorySection()
+                    CategorySection(viewModel)
                 }
 
                 if (mostUsed.isNotEmpty()) {
@@ -249,14 +344,14 @@ fun SectionHeader(title: String) {
 }
 
 @Composable
-fun CategorySection() {
+fun CategorySection(viewModel: MainViewModel) {
     val categories = listOf(
         Pair("Padaria", MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer),
         Pair("Hortifruti", MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer),
-        Pair("Açougue", com.example.ui.theme.BlueContainer to com.example.ui.theme.BlueText),
+        Pair("Açougue", MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer),
         Pair("Frios", MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer),
         Pair("Confeitaria", MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer),
-        Pair("Rotisserie", com.example.ui.theme.BlueContainer to com.example.ui.theme.BlueText)
+        Pair("Rotisserie", MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer)
     )
     
     LazyRow(
@@ -269,7 +364,7 @@ fun CategorySection() {
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
                     .background(colors.first)
-                    .clickable { /* Filter by category */ }
+                    .clickable { viewModel.updateSearchQuery(category) }
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -285,6 +380,23 @@ fun CategorySection() {
 
 @Composable
 fun ProductCard(product: Product, viewModel: MainViewModel) {
+    val vibrateOnClick by viewModel.userPreferences.vibrateOnClick.collectAsState(initial = true)
+    val vibrateOnFound by viewModel.userPreferences.vibrateOnFound.collectAsState(initial = true)
+    val largeText by viewModel.userPreferences.largeText.collectAsState(initial = false)
+    val boldOutline by viewModel.userPreferences.boldOutline.collectAsState(initial = false)
+    val uppercaseBold by viewModel.userPreferences.uppercaseBold.collectAsState(initial = false)
+    val context = LocalContext.current
+    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator }
+    fun triggerVibration() {
+        if (!vibrateOnClick) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(50)
+        }
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -370,6 +482,23 @@ fun ProductCard(product: Product, viewModel: MainViewModel) {
 
 @Composable
 fun MiniProductCard(product: Product, viewModel: MainViewModel) {
+    val vibrateOnClick by viewModel.userPreferences.vibrateOnClick.collectAsState(initial = true)
+    val vibrateOnFound by viewModel.userPreferences.vibrateOnFound.collectAsState(initial = true)
+    val largeText by viewModel.userPreferences.largeText.collectAsState(initial = false)
+    val boldOutline by viewModel.userPreferences.boldOutline.collectAsState(initial = false)
+    val uppercaseBold by viewModel.userPreferences.uppercaseBold.collectAsState(initial = false)
+    val context = LocalContext.current
+    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator }
+    fun triggerVibration() {
+        if (!vibrateOnClick) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(50)
+        }
+    }
+
     Column(
         modifier = Modifier
             .width(160.dp)
@@ -388,7 +517,10 @@ fun MiniProductCard(product: Product, viewModel: MainViewModel) {
         ) {
             if (product.imageUrl != null) {
                 AsyncImage(
-                    model = product.imageUrl,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(product.imageUrl)
+                        .crossfade(true)
+                        .build(),
                     contentDescription = product.name,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
@@ -447,13 +579,108 @@ fun MiniProductCard(product: Product, viewModel: MainViewModel) {
 
 @Composable
 fun HistoryItem(product: Product, viewModel: MainViewModel) {
+    val vibrateOnClick by viewModel.userPreferences.vibrateOnClick.collectAsState(initial = true)
+    val vibrateOnFound by viewModel.userPreferences.vibrateOnFound.collectAsState(initial = true)
+    val largeText by viewModel.userPreferences.largeText.collectAsState(initial = false)
+    val boldOutline by viewModel.userPreferences.boldOutline.collectAsState(initial = false)
+    val uppercaseBold by viewModel.userPreferences.uppercaseBold.collectAsState(initial = false)
+    val context = LocalContext.current
+    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator }
+    fun triggerVibration() {
+        if (!vibrateOnClick) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(50)
+        }
+    }
+
+    var showDialog by remember { mutableStateOf(false) }
+    var animateIn by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+
+    fun closeDialog() {
+        animateIn = false
+        coroutineScope.launch {
+            delay(200)
+            showDialog = false
+        }
+    }
+
+    if (showDialog) {
+        androidx.compose.runtime.LaunchedEffect(Unit) {
+            animateIn = true
+        }
+        Dialog(onDismissRequest = { closeDialog() }) {
+            AnimatedVisibility(
+                visible = animateIn,
+                enter = fadeIn() + scaleIn(initialScale = 0.8f, animationSpec = tween(300, easing = EaseOutBack)),
+                exit = fadeOut(tween(200)) + scaleOut(targetScale = 0.8f, animationSpec = tween(200, easing = EaseIn))
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(32.dp),
+                    color = Color.White,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally, 
+                        modifier = Modifier.fillMaxWidth().padding(24.dp)
+                    ) {
+                        Text(
+                            text = product.name,
+                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black),
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = product.code,
+                            style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        val barcodeBitmap = generateBarcodeBitmap(product.code)
+                        if (barcodeBitmap != null) {
+                            Image(
+                                bitmap = barcodeBitmap,
+                                contentDescription = "Código de barras",
+                                contentScale = ContentScale.FillBounds,
+                                filterQuality = FilterQuality.None,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(90.dp)
+                                    .padding(horizontal = 8.dp)
+                                    .background(androidx.compose.ui.graphics.Color.White)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                        
+                        Text(
+                            text = "Código de barras / Referência",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Button(
+                            onClick = { closeDialog() },
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                            shape = RoundedCornerShape(24.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Text("FECHAR", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
             .border(1.dp, MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(16.dp))
-            .clickable { viewModel.onProductSearched(product) }
+            .clickable { triggerVibration(); showDialog = true }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -564,5 +791,28 @@ fun getCategoryIcon(category: String): String {
         "rotisserie" -> "🍗"
         "bebidas" -> "🥤"
         else -> "🏷️"
+    }
+}
+
+fun generateBarcodeBitmap(data: String): ImageBitmap? {
+    try {
+        val writer = MultiFormatWriter()
+        val hints = EnumMap<EncodeHintType, Any>(EncodeHintType::class.java)
+        hints[EncodeHintType.MARGIN] = 0 // we handle margin in Compose
+        
+        // Generate with higher horizontal resolution to prevent artifacts, 
+        // but even with FilterQuality.None, drawing sharp is best
+        val bitMatrix = writer.encode(data, BarcodeFormat.CODE_128, 1024, 256, hints)
+        val width = bitMatrix.width
+        val height = bitMatrix.height
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        for (x in 0 until width) {
+            for (y in 0 until height) {
+                bitmap.setPixel(x, y, if (bitMatrix.get(x, y)) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
+            }
+        }
+        return bitmap.asImageBitmap()
+    } catch (e: Exception) {
+        return null
     }
 }
