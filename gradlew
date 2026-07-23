@@ -1,5 +1,12 @@
 #!/bin/sh
 
+# Auto-download gradle-wrapper.jar if missing
+if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
+    echo "Downloading gradle-wrapper.jar..."
+    mkdir -p gradle/wrapper
+    curl -fsSL -o gradle/wrapper/gradle-wrapper.jar "https://raw.githubusercontent.com/gradle/gradle/v9.3.1/gradle/wrapper/gradle-wrapper.jar"
+fi
+
 #
 # Copyright © 2015 the original authors.
 #
