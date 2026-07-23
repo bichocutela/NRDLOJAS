@@ -1,4 +1,5 @@
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
+// Forçando sincronização do gradle-wrapper
 plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.compose)
