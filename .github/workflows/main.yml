@@ -27,7 +27,12 @@ jobs:
 
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
+      
+    - name: Inserir Chave do Gemini
+        run: echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > .env
 
+      - name: Build with Gradle
+        run: gradle assembleDebug
     - name: Build with Gradle
       run: gradle assembleDebug
 
