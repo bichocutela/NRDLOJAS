@@ -5,7 +5,15 @@ import kotlinx.coroutines.flow.map
 import java.text.Normalizer
 import kotlin.math.min
 
-class ProductRepository(private val dao: ProductDao) {
+class ProductRepository(
+    private val dao: ProductDao,
+    private val dynamicTabDao: DynamicTabDao? = null
+) {
+    fun getAllTabs() = dynamicTabDao?.getAllTabs() ?: kotlinx.coroutines.flow.flowOf(emptyList())
+    suspend fun insertTab(tab: DynamicTab) { dynamicTabDao?.insertTab(tab) }
+    suspend fun updateTab(tab: DynamicTab) { dynamicTabDao?.updateTab(tab) }
+    suspend fun deleteTab(tab: DynamicTab) { dynamicTabDao?.deleteTab(tab) }
+
     val allProducts: Flow<List<Product>> = dao.getAllProducts()
     val favorites: Flow<List<Product>> = dao.getFavorites()
     val mostUsed: Flow<List<Product>> = dao.getMostUsed()
@@ -22,11 +30,12 @@ class ProductRepository(private val dao: ProductDao) {
             products.filter { product ->
                 val searchName = product.searchName
                 val code = product.code
+                val category = product.category.unaccent().lowercase()
                 
                 if (code.contains(normalizedQuery)) return@filter true
                 
                 tokens.all { token ->
-                    searchName.contains(token) || isTypoMatch(token, searchName)
+                    searchName.contains(token) || isTypoMatch(token, searchName) || category.contains(token)
                 }
             }.sortedWith(compareByDescending<Product> { it.searchCount }.thenBy { it.name })
         }
@@ -42,11 +51,12 @@ class ProductRepository(private val dao: ProductDao) {
         return products.filter { product ->
             val searchName = product.searchName
             val code = product.code
+            val category = product.category.unaccent().lowercase()
             
             if (code.contains(normalizedQuery)) return@filter true
             
             tokens.all { token ->
-                searchName.contains(token) || isTypoMatch(token, searchName)
+                searchName.contains(token) || isTypoMatch(token, searchName) || category.contains(token)
             }
         }.sortedWith(compareByDescending<Product> { it.searchCount }.thenBy { it.name })
     }

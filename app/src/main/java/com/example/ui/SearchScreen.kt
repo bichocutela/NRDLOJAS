@@ -386,14 +386,14 @@ fun ProductCard(product: Product, viewModel: MainViewModel) {
     val boldOutline by viewModel.userPreferences.boldOutline.collectAsState(initial = false)
     val uppercaseBold by viewModel.userPreferences.uppercaseBold.collectAsState(initial = false)
     val context = LocalContext.current
-    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator }
+    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator }
     fun triggerVibration() {
         if (!vibrateOnClick) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+            vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
         } else {
             @Suppress("DEPRECATION")
-            vibrator.vibrate(50)
+            vibrator?.vibrate(50)
         }
     }
 
@@ -488,14 +488,14 @@ fun MiniProductCard(product: Product, viewModel: MainViewModel) {
     val boldOutline by viewModel.userPreferences.boldOutline.collectAsState(initial = false)
     val uppercaseBold by viewModel.userPreferences.uppercaseBold.collectAsState(initial = false)
     val context = LocalContext.current
-    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator }
+    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator }
     fun triggerVibration() {
         if (!vibrateOnClick) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+            vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
         } else {
             @Suppress("DEPRECATION")
-            vibrator.vibrate(50)
+            vibrator?.vibrate(50)
         }
     }
 
@@ -585,14 +585,14 @@ fun HistoryItem(product: Product, viewModel: MainViewModel) {
     val boldOutline by viewModel.userPreferences.boldOutline.collectAsState(initial = false)
     val uppercaseBold by viewModel.userPreferences.uppercaseBold.collectAsState(initial = false)
     val context = LocalContext.current
-    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator }
+    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator }
     fun triggerVibration() {
         if (!vibrateOnClick) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+            vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
         } else {
             @Suppress("DEPRECATION")
-            vibrator.vibrate(50)
+            vibrator?.vibrate(50)
         }
     }
 

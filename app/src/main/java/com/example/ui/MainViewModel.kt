@@ -149,6 +149,12 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
     fun clearNewProductsCount() {
         _newProductsCount.value = 0
     }
+    val dynamicTabs: kotlinx.coroutines.flow.StateFlow<List<com.example.data.DynamicTab>> = repository.getAllTabs()
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun insertTab(tab: com.example.data.DynamicTab) = viewModelScope.launch { repository.insertTab(tab) }
+    fun updateTab(tab: com.example.data.DynamicTab) = viewModelScope.launch { repository.updateTab(tab) }
+    fun deleteTab(tab: com.example.data.DynamicTab) = viewModelScope.launch { repository.deleteTab(tab) }
 }
 
 data class ChatMessage(val text: String, val isUser: Boolean)

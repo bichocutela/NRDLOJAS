@@ -50,7 +50,7 @@ class MainActivity : ComponentActivity() {
     }
     
     private val repository by lazy {
-        ProductRepository(db.productDao())
+        ProductRepository(db.productDao(), db.dynamicTabDao())
     }
     private val userPreferences by lazy {
         UserPreferences(applicationContext)
@@ -110,7 +110,7 @@ class MainActivity : ComponentActivity() {
                                 contentAlignment = Alignment.Center
                             ) {
                                 Image(
-                                    painter = painterResource(id = R.drawable.logo_nordestao),
+                                    painter = painterResource(id = R.drawable.splash_logo),
                                     contentDescription = "Logo",
                                     modifier = Modifier.size(150.dp)
                                 )

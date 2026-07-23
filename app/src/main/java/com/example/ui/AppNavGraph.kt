@@ -34,6 +34,7 @@ fun AppNavGraph(viewModel: MainViewModel) {
     val context = LocalContext.current
     val sharedPref = remember { context.getSharedPreferences("admin_prefs", Context.MODE_PRIVATE) }
     var isLoggedIn by remember { mutableStateOf(sharedPref.getBoolean("is_logged_in", false)) }
+    var userRole by remember { mutableStateOf(sharedPref.getString("user_role", "admin") ?: "admin") }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -42,11 +43,20 @@ fun AppNavGraph(viewModel: MainViewModel) {
                 LoginDrawerContent(
                     viewModel = viewModel,
                     isLoggedIn = isLoggedIn,
-                    onLoginSuccess = {
-                        sharedPref.edit().putBoolean("is_logged_in", true).apply()
+                    userRole = userRole,
+                    onLoginSuccess = { role ->
+                        sharedPref.edit()
+                            .putBoolean("is_logged_in", true)
+                            .putString("user_role", role)
+                            .apply()
                         isLoggedIn = true
+                        userRole = role
                         scope.launch { drawerState.close() }
-                        navController.navigate("admin")
+                        if (role == "mestre") {
+                            navController.navigate("mestre")
+                        } else {
+                            navController.navigate("admin")
+                        }
                     },
                     onLogout = {
                         sharedPref.edit().putBoolean("is_logged_in", false).apply()
@@ -61,7 +71,16 @@ fun AppNavGraph(viewModel: MainViewModel) {
                     onGoToSettings = { scope.launch { drawerState.close() }; navController.navigate("settings") },
                     onGoToAdmin = {
                         scope.launch { drawerState.close() }
-                        navController.navigate("admin")
+                        if (userRole == "mestre") {
+                            navController.navigate("mestre")
+                        } else {
+                            navController.navigate("admin")
+                        }
+                    },
+                    onGoToAbout = { scope.launch { drawerState.close() }; navController.navigate("about") },
+                    onGoToDynamicTab = { tabId ->
+                        scope.launch { drawerState.close() }
+                        navController.navigate("dynamic_tab/$tabId")
                     }
                 )
             }
@@ -105,6 +124,18 @@ fun AppNavGraph(viewModel: MainViewModel) {
                 startDestination = "search",
                 modifier = Modifier.padding(innerPadding)
             ) {
+                composable("dynamic_tab/{tabId}") { backStackEntry ->
+                    val tabId = backStackEntry.arguments?.getString("tabId")?.toIntOrNull()
+                    val dynamicTabs by viewModel.dynamicTabs.collectAsState()
+                    val tab = dynamicTabs.find { it.id == tabId }
+                    if (tab != null) {
+                        DynamicTabScreen(tab = tab, onNavigateBack = { navController.popBackStack() })
+                    } else {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("Aba não encontrada.")
+                        }
+                    }
+                }
                 composable("search") {
                     SearchScreen(viewModel, onOpenDrawer = { scope.launch { drawerState.open() } })
                 }
@@ -116,8 +147,30 @@ fun AppNavGraph(viewModel: MainViewModel) {
                         navController.popBackStack()
                     })
                 }
+                composable("mestre") {
+                    MestreScreen(
+                        viewModel = viewModel,
+                        onNavigateToAdmin = { navController.navigate("admin") },
+                        onNavigateToManageTabs = { navController.navigate("manage_tabs") },
+                        onNavigateToManageProducts = { navController.navigate("manage_products") },
+                        onNavigateBack = {
+                            navController.popBackStack()
+                        }
+                    )
+                }
+                composable("manage_tabs") {
+                    ManageTabsScreen(viewModel = viewModel, onNavigateBack = { navController.popBackStack() })
+                }
+                composable("manage_products") {
+                    ManageProductsScreen(viewModel = viewModel, onNavigateBack = { navController.popBackStack() })
+                }
                 composable("settings") {
                     SettingsScreen(viewModel, onNavigateBack = {
+                        navController.popBackStack()
+                    })
+                }
+                composable("about") {
+                    AboutScreen(onNavigateBack = {
                         navController.popBackStack()
                     })
                 }
@@ -130,10 +183,13 @@ fun AppNavGraph(viewModel: MainViewModel) {
 fun LoginDrawerContent(
     viewModel: MainViewModel,
     isLoggedIn: Boolean,
-    onLoginSuccess: () -> Unit,
+    userRole: String,
+    onLoginSuccess: (String) -> Unit,
     onLogout: () -> Unit,
     onGoToAdmin: () -> Unit,
-    onGoToSettings: () -> Unit
+    onGoToSettings: () -> Unit,
+    onGoToAbout: () -> Unit,
+    onGoToDynamicTab: (Int) -> Unit
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -173,9 +229,12 @@ fun LoginDrawerContent(
             Spacer(modifier = Modifier.height(24.dp))
             Button(
                 onClick = {
-                    if (username == "admin" && password == "nrdlojas") {
-                        loginStatus = "Login com sucesso!"
-                        onLoginSuccess()
+                    if (username == "mestre" && password == "nrdlojas") {
+                        loginStatus = "Login Mestre realizado!"
+                        onLoginSuccess("mestre")
+                    } else if (username == "admin" && password == "nrdlojas") {
+                        loginStatus = "Login Admin realizado!"
+                        onLoginSuccess("admin")
                     } else {
                         loginStatus = "Usuário ou senha incorretos."
                     }
@@ -188,7 +247,7 @@ fun LoginDrawerContent(
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = loginStatus!!,
-                    color = if (loginStatus == "Login com sucesso!") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                    color = if (loginStatus?.startsWith("Login") == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                 )
             }
         } else {
@@ -203,7 +262,11 @@ fun LoginDrawerContent(
                 onClick = onGoToAdmin,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Acessar Painel Administrativo")
+                if (userRole == "mestre") {
+                    Text("Acessar Painel Mestre")
+                } else {
+                    Text("Acessar Painel Administrativo")
+                }
             }
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedButton(
@@ -218,13 +281,57 @@ fun LoginDrawerContent(
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = loginStatus!!,
-                color = if (loginStatus == "Login com sucesso!") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                color = if (loginStatus?.startsWith("Login") == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
             )
         }
         
         Spacer(modifier = Modifier.height(24.dp))
         HorizontalDivider()
         Spacer(modifier = Modifier.height(16.dp))
+        
+        Button(
+            onClick = onGoToSettings,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Configurações")
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Button(
+            onClick = onGoToAbout,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Sobre")
+        }
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        HorizontalDivider()
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        val dynamicTabs by viewModel.dynamicTabs.collectAsState()
+        if (dynamicTabs.isNotEmpty()) {
+            Text(
+                text = "Abas Adicionais",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.align(Alignment.Start)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            dynamicTabs.sortedBy { it.displayOrder }.forEach { tab ->
+                TextButton(
+                    onClick = {
+                        onGoToDynamicTab(tab.id)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(tab.title)
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(16.dp))
+        }
         
         Text(
             text = "Categorias",
