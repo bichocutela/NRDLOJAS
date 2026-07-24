@@ -39,6 +39,10 @@ class UserPreferences(private val context: Context) {
         preferences[NOTIFICATIONS_ENABLED] ?: true
     }
     val lastNotifiedProductCode: Flow<String?> = context.dataStore.data.map { it[LAST_NOTIFIED_PRODUCT_CODE] }
+    
+    val onboardingShown: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[ONBOARDING_SHOWN] ?: false
+    }
 
     suspend fun setVibrateOnClick(enabled: Boolean) {
         context.dataStore.edit { it[VIBRATE_ON_CLICK] = enabled }
@@ -68,6 +72,10 @@ class UserPreferences(private val context: Context) {
         context.dataStore.edit { it[LAST_NOTIFIED_PRODUCT_CODE] = code }
     }
 
+    suspend fun setOnboardingShown(shown: Boolean) {
+        context.dataStore.edit { it[ONBOARDING_SHOWN] = shown }
+    }
+
     companion object {
         val VIBRATE_ON_CLICK = booleanPreferencesKey("vibrate_on_click")
         val VIBRATE_ON_FOUND = booleanPreferencesKey("vibrate_on_found")
@@ -78,5 +86,6 @@ class UserPreferences(private val context: Context) {
         val FONT_SCALE = floatPreferencesKey("font_scale")
         val BANNER_IMAGE_URI = stringPreferencesKey("banner_image_uri")
         val LAST_NOTIFIED_PRODUCT_CODE = stringPreferencesKey("last_notified_product_code")
+        val ONBOARDING_SHOWN = booleanPreferencesKey("onboarding_shown")
     }
 }

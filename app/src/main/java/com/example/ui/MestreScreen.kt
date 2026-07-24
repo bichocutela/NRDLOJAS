@@ -137,14 +137,20 @@ fun MestreScreen(
                             showConfirmDialog = false
                             coroutineScope.launch {
                                 try {
-                                    val inputStream = context.contentResolver.openInputStream(selectedUri!!)
-                                    val file = java.io.File(context.filesDir, "custom_hero_banner.jpg")
-                                    val outputStream = java.io.FileOutputStream(file)
-                                    inputStream?.copyTo(outputStream)
-                                    inputStream?.close()
-                                    outputStream.close()
-                                    viewModel.userPreferences.setBannerImageUri(file.absolutePath)
-                                    android.widget.Toast.makeText(context, "Fundo alterado com sucesso!", android.widget.Toast.LENGTH_SHORT).show()
+                                    val url = com.example.data.FirebaseService.uploadBanner(selectedUri!!)
+                                    if (url != null) {
+                                        android.widget.Toast.makeText(context, "Fundo alterado com sucesso para todos!", android.widget.Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        // Fallback para local apenas
+                                        val inputStream = context.contentResolver.openInputStream(selectedUri!!)
+                                        val file = java.io.File(context.filesDir, "custom_hero_banner.jpg")
+                                        val outputStream = java.io.FileOutputStream(file)
+                                        inputStream?.copyTo(outputStream)
+                                        inputStream?.close()
+                                        outputStream.close()
+                                        viewModel.userPreferences.setBannerImageUri(file.absolutePath)
+                                        android.widget.Toast.makeText(context, "Fundo alterado (apenas local, Firebase offline)", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
                                 } catch (e: Exception) {
                                     android.widget.Toast.makeText(context, "Erro ao salvar imagem", android.widget.Toast.LENGTH_SHORT).show()
                                 }

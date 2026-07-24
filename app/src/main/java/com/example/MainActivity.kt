@@ -31,6 +31,8 @@ import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.delay
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Modifier
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
@@ -68,14 +70,13 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        com.example.data.FirebaseService.initialize(this)
 
         val crashLog = CrashReporter.getCrashLog(this)
         if (crashLog != null) {
             CrashReporter.clearCrashLog(this)
             setContent {
-            LaunchedEffect(Unit) {
-                viewModel.syncProductsFromFirebase()
-            }
+            
                 androidx.compose.material3.MaterialTheme {
                     androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                         androidx.compose.foundation.lazy.LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -130,7 +131,18 @@ class MainActivity : ComponentActivity() {
                 fontScale = currentDensity.fontScale * fontScale
             )
 
+
             CompositionLocalProvider(LocalDensity provides customDensity) {
+                val context = androidx.compose.ui.platform.LocalContext.current
+                LaunchedEffect(Unit) {
+                    viewModel.syncProductsFromFirebase()
+                }
+                LaunchedEffect(Unit) {
+                    viewModel.syncMessage.collect { msg ->
+                        android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
+                    }
+                }
+
                 MyApplicationTheme {
 
                 var showSplash by remember { mutableStateOf(true) }

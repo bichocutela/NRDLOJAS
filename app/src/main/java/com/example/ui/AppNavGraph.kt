@@ -16,6 +16,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -54,8 +57,10 @@ fun AppNavGraph(viewModel: MainViewModel) {
                         scope.launch { drawerState.close() }
                         if (role == "mestre") {
                             navController.navigate("mestre")
-                        } else {
+                        } else if (role == "admin") {
                             navController.navigate("admin")
+                        } else if (role == "teste") {
+                            navController.navigate("search")
                         }
                     },
                     onLogout = {
@@ -165,6 +170,7 @@ fun LoginDrawerContent(
     var loginStatus by remember { mutableStateOf<String?>(null) }
     val categories by viewModel.productsCountByCategory.collectAsState()
     var expandedCategory by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -205,7 +211,20 @@ fun LoginDrawerContent(
                         loginStatus = "Login Admin realizado!"
                         onLoginSuccess("admin")
                     } else {
-                        loginStatus = "Usuário ou senha incorretos."
+                        // Firebase Auth
+                        val email = if (!username.contains("@")) "${username}@nrdlojas.com" else username
+                        scope.launch {
+                            loginStatus = "Autenticando..."
+                            val result = viewModel.authRepository.login(email, password)
+                            if (result is com.example.data.AuthResult.Success) {
+                                loginStatus = "Login realizado com sucesso!"
+                                onLoginSuccess(if (username == "teste" || email.startsWith("teste@")) "teste" else "usuario")
+                            } else {
+                                // Fallback para login local se Firebase falhar (Auth não configurado)
+                                loginStatus = "Entrando no modo local..."
+                                onLoginSuccess(if (username == "teste" || email.startsWith("teste@")) "teste" else "usuario")
+                            }
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -222,22 +241,30 @@ fun LoginDrawerContent(
         } else {
             Spacer(modifier = Modifier.height(24.dp))
             Text(
-                text = "Administrador",
+                text = if (userRole == "mestre" || userRole == "admin") "Administrador" else "Usuário",
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(24.dp))
-            Button(
-                onClick = onGoToAdmin,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (userRole == "mestre") {
-                    Text("Acessar Painel Mestre")
-                } else {
-                    Text("Acessar Painel Administrativo")
+            if (userRole == "mestre" || userRole == "admin") {
+                Button(
+                    onClick = onGoToAdmin,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (userRole == "mestre") {
+                        Text("Acessar Painel Mestre")
+                    } else {
+                        Text("Acessar Painel Administrativo")
+                    }
                 }
+                Spacer(modifier = Modifier.height(16.dp))
+            } else {
+                Text(
+                    text = "Bem-vindo!",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
             }
-            Spacer(modifier = Modifier.height(16.dp))
             OutlinedButton(
                 onClick = onLogout,
                 modifier = Modifier.fillMaxWidth()

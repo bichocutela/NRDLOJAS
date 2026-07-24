@@ -207,6 +207,13 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
     }
 
 
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        viewModel.syncMessage.collectLatest { message ->
+            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
     val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
     PullToRefreshBox(
         isRefreshing = isSyncing,
@@ -412,6 +419,59 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
             }
         }
         }
+
+        val onboardingShown by viewModel.userPreferences.onboardingShown.collectAsState(initial = true)
+        if (!onboardingShown) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.8f))
+                    .clickable { viewModel.setOnboardingShown() }
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(64.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Use a barra de busca para encontrar produtos rapidamente pelo nome ou código.",
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(48.dp))
+                    Icon(
+                        imageVector = Icons.Default.FavoriteBorder,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(64.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Toque no coração para favoritar os produtos que você mais usa.",
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(48.dp))
+                    Button(
+                        onClick = { viewModel.setOnboardingShown() },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Text("Entendi, vamos lá!")
+                    }
+                }
+            }
+        }
+
     }
 }
 
@@ -651,11 +711,22 @@ fun MiniProductCard(product: Product, viewModel: MainViewModel) {
                     )
                 }
             }
-            Text(
-                text = product.unit.uppercase(),
-                style = MaterialTheme.typography.labelMedium.copy(fontSize = 10.sp),
-                color = MaterialTheme.colorScheme.primary
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (product.isFavorite) {
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = "Favorito",
+                        tint = Color.Red,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
+                Text(
+                    text = product.unit.uppercase(),
+                    style = MaterialTheme.typography.labelMedium.copy(fontSize = 10.sp),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
         
         Column {

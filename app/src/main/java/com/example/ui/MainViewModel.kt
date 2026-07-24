@@ -12,6 +12,8 @@ import com.example.data.ProductRepository
 import com.example.data.UserPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
@@ -21,18 +23,55 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class MainViewModel(private val repository: ProductRepository, val userPreferences: UserPreferences) : ViewModel() {
+    val authRepository = com.example.data.AuthRepository()
+
 
     private val _latestProduct = MutableStateFlow<Map<String, Any>?>(null)
     val latestProduct = _latestProduct.asStateFlow()
     init {
         viewModelScope.launch {
+            com.example.data.FirebaseService.observeBannerUrl().collect { url ->
+                if (url != null) {
+                    userPreferences.setBannerImageUri(url)
+                }
+            }
+        }
+        viewModelScope.launch {
             com.example.data.FirebaseService.observeLatestProduct().collect {
                 _latestProduct.value = it
+                if (it != null) {
+                    syncProductsFromFirebase()
+                }
             }
         }
         viewModelScope.launch {
             repository.populateInitialDataIfNeeded()
-            viewModelScope.launch { 
+            syncProductsFromFirebase()
+            
+            val existing = repository.searchProductsSync("256075")
+            if (existing.isEmpty()) {
+                val newProducts = listOf(
+                    com.example.data.Product(code = "256075", name = "Coxa/Sobrecoxa de Frango Resfriada", searchName = "coxa sobrecoxa de frango resfriada", category = "Açougue", unit = "kg", imageUrl = "https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=150&q=80"),
+                    com.example.data.Product(code = "254297", name = "Sobrecoxa de Frango S/ Pele", searchName = "sobrecoxa de frango sem pele", category = "Açougue", unit = "kg", imageUrl = "https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=150&q=80"),
+                    com.example.data.Product(code = "254307", name = "Coração de Frango Bom Todo", searchName = "coracao de frango bom todo", category = "Açougue", unit = "kg", imageUrl = "https://images.unsplash.com/photo-1590080874088-eec64895e423?auto=format&fit=crop&w=150&q=80"),
+                    com.example.data.Product(code = "256088", name = "Pé de Frango Resfriado", searchName = "pe de frango resfriado", category = "Açougue", unit = "kg", imageUrl = "https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=150&q=80"),
+                    com.example.data.Product(code = "254304", name = "Filé de Peito Bom Todo", searchName = "file de peito bom todo", category = "Açougue", unit = "kg", imageUrl = "https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=150&q=80"),
+                    com.example.data.Product(code = "254331", name = "Coxa de Frango Resfriada", searchName = "coxa de frango resfriada", category = "Açougue", unit = "kg", imageUrl = "https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=150&q=80"),
+                    com.example.data.Product(code = "254306", name = "Moela de Frango Bom Todo", searchName = "moela de frango bom todo", category = "Açougue", unit = "kg", imageUrl = "https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=150&q=80"),
+                    com.example.data.Product(code = "254308", name = "Filé de Sobrecoxa Bom Todo", searchName = "file de sobrecoxa bom todo", category = "Açougue", unit = "kg", imageUrl = "https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=150&q=80"),
+                    com.example.data.Product(code = "254293", name = "Coxinha da Asa Bom Todo", searchName = "coxinha da asa bom todo", category = "Açougue", unit = "kg", imageUrl = "https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=150&q=80"),
+                    com.example.data.Product(code = "254333", name = "Sobrecoxa de Frango Bom Todo", searchName = "sobrecoxa de frango bom todo", category = "Açougue", unit = "kg", imageUrl = "https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=150&q=80"),
+                    com.example.data.Product(code = "256087", name = "Fígado de Frango Resfriado", searchName = "figado de frango resfriado", category = "Açougue", unit = "kg", imageUrl = "https://images.unsplash.com/photo-1590080874088-eec64895e423?auto=format&fit=crop&w=150&q=80"),
+                    com.example.data.Product(code = "254311", name = "Asa de Frango Bom Todo", searchName = "asa de frango bom todo", category = "Açougue", unit = "kg", imageUrl = "https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=150&q=80"),
+                    com.example.data.Product(code = "254305", name = "Meio da Asa Bom Todo", searchName = "meio da asa bom todo", category = "Açougue", unit = "kg", imageUrl = "https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=150&q=80")
+                )
+                repository.insertProducts(newProducts)
+                if (com.example.data.FirebaseService.isFirebaseConfigured()) {
+                    newProducts.forEach { product ->
+                        com.example.data.FirebaseService.saveProduct(product)
+                    }
+                    com.example.data.FirebaseService.publishLatestProduct(newProducts.last())
+                }
             }
         }
     }
@@ -173,6 +212,9 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
         }
     }
 
+    private val _syncMessage = MutableSharedFlow<String>()
+    val syncMessage = _syncMessage.asSharedFlow()
+
     fun addProduct(name: String, code: String, category: String, unit: String) {
         viewModelScope.launch {
             val product = Product(
@@ -183,21 +225,33 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
                 unit = unit
             )
             repository.insertProduct(product)
-            com.example.data.FirebaseService.saveProduct(product)
-            com.example.data.FirebaseService.publishLatestProduct(product)
+            if (!com.example.data.FirebaseService.isFirebaseConfigured()) {
+                _syncMessage.emit("Salvo apenas localmente (Nuvem não configurada)")
+            } else {
+                com.example.data.FirebaseService.saveProduct(product)
+                com.example.data.FirebaseService.publishLatestProduct(product)
+                _syncMessage.emit("Produto adicionado na nuvem!")
+            }
             _newProductsCount.value += 1
         }
     }
-    
     private val _isSyncing = MutableStateFlow(false)
     val isSyncing = _isSyncing.asStateFlow()
     
     fun syncProductsFromFirebase() {
         viewModelScope.launch {
             _isSyncing.value = true
+            if (!com.example.data.FirebaseService.isFirebaseConfigured()) {
+                _syncMessage.emit("Aviso: Nuvem não configurada. Nenhum produto baixado.")
+                _isSyncing.value = false
+                return@launch
+            }
             val remoteProducts = com.example.data.FirebaseService.getAllProducts()
             if (remoteProducts.isNotEmpty()) {
                 repository.insertProducts(remoteProducts)
+                _syncMessage.emit("Produtos atualizados da nuvem!")
+            } else {
+                _syncMessage.emit("Nuvem já está sincronizada.")
             }
             _isSyncing.value = false
         }
@@ -211,6 +265,12 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
     fun insertTab(tab: com.example.data.DynamicTab) = viewModelScope.launch { repository.insertTab(tab) }
     fun updateTab(tab: com.example.data.DynamicTab) = viewModelScope.launch { repository.updateTab(tab) }
     fun deleteTab(tab: com.example.data.DynamicTab) = viewModelScope.launch { repository.deleteTab(tab) }
+
+    fun setOnboardingShown() {
+        viewModelScope.launch {
+            userPreferences.setOnboardingShown(true)
+        }
+    }
 }
 
 data class ChatMessage(val text: String, val isUser: Boolean)

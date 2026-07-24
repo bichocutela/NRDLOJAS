@@ -1,4 +1,3 @@
-import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
 // Forçando sincronização do gradle-wrapper
 plugins {
   alias(libs.plugins.android.application)
@@ -7,7 +6,7 @@ plugins {
   alias(libs.plugins.google.devtools.ksp)
   alias(libs.plugins.roborazzi)
   alias(libs.plugins.secrets)
-  alias(libs.plugins.google.services)
+  
 }
 android {
   namespace = "com.example"
@@ -61,7 +60,6 @@ secrets {
   propertiesFileName = ".env"
   defaultPropertiesFileName = ".env.example"
 }
-googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN }
 // Some unused dependencies are commented out below instead of being removed.
 // This makes it easy to add them back in the future if needed.
 dependencies {
@@ -97,7 +95,7 @@ dependencies {
   // Firebase Auth with Google Sign-In requires all of the following to be uncommented together.
   // If you are using Firebase Auth with other providers (e.g. Email/Password), you may only need
   // firebase-auth.
-  // implementation(libs.firebase.auth)
+  implementation(libs.firebase.auth)
   // implementation(libs.androidx.credentials)
   // implementation(libs.androidx.credentials.play.services)
   // implementation(libs.googleid)

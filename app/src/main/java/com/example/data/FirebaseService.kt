@@ -105,6 +105,25 @@ object FirebaseService {
             false
         }
     }
+    
+    fun initialize(context: android.content.Context) {
+        try {
+            FirebaseApp.getInstance()
+        } catch (e: Exception) {
+            val apiKey = com.example.BuildConfig.FIREBASE_API_KEY
+            val projectId = com.example.BuildConfig.FIREBASE_PROJECT_ID
+            val appId = com.example.BuildConfig.FIREBASE_APP_ID
+            
+            if (apiKey != "dummy" && projectId != "dummy" && appId != "dummy") {
+                val options = com.google.firebase.FirebaseOptions.Builder()
+                    .setApiKey(apiKey)
+                    .setProjectId(projectId)
+                    .setApplicationId(appId)
+                    .build()
+                FirebaseApp.initializeApp(context, options)
+            }
+        }
+    }
 
     suspend fun uploadBanner(uri: Uri): String? {
         if (!isFirebaseConfigured()) return null

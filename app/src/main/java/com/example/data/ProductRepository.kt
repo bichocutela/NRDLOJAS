@@ -79,7 +79,23 @@ class ProductRepository(
         )
     }
 
-    suspend fun insertProducts(products: List<Product>) = dao.insertProducts(products)
+    suspend fun insertProducts(products: List<Product>) {
+        val existingProducts = dao.getAllProductsSync().associateBy { it.code }
+        val updatedProducts = products.map { remote ->
+            val local = existingProducts[remote.code]
+            if (local != null) {
+                remote.copy(
+                    id = local.id,
+                    isFavorite = local.isFavorite,
+                    searchCount = local.searchCount,
+                    lastSearchedAt = local.lastSearchedAt
+                )
+            } else {
+                remote
+            }
+        }
+        dao.insertProducts(updatedProducts)
+    }
     suspend fun insertProduct(product: Product) {
         dao.insertProduct(product)
     }
