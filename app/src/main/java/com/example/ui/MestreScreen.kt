@@ -139,8 +139,10 @@ fun MestreScreen(
                                 try {
                                     val url = com.example.data.FirebaseService.uploadBanner(selectedUri!!)
                                     if (url != null) {
-                                        android.widget.Toast.makeText(context, "Fundo alterado com sucesso para todos!", android.widget.Toast.LENGTH_SHORT).show()
+                                        com.example.util.NotificationHelper.showToast(context, "Fundo alterado com sucesso para todos!", android.widget.Toast.LENGTH_SHORT)
                                     } else {
+                                        val error = com.example.data.FirebaseService.lastError ?: "Firebase offline ou erro desconhecido"
+                                        com.example.util.NotificationHelper.showToast(context, "Erro: $error", android.widget.Toast.LENGTH_LONG)
                                         // Fallback para local apenas
                                         val inputStream = context.contentResolver.openInputStream(selectedUri!!)
                                         val file = java.io.File(context.filesDir, "custom_hero_banner.jpg")
@@ -149,10 +151,10 @@ fun MestreScreen(
                                         inputStream?.close()
                                         outputStream.close()
                                         viewModel.userPreferences.setBannerImageUri(file.absolutePath)
-                                        android.widget.Toast.makeText(context, "Fundo alterado (apenas local, Firebase offline)", android.widget.Toast.LENGTH_SHORT).show()
+                                        com.example.util.NotificationHelper.showToast(context, "Fundo alterado (apenas local)", android.widget.Toast.LENGTH_SHORT)
                                     }
                                 } catch (e: Exception) {
-                                    android.widget.Toast.makeText(context, "Erro ao salvar imagem", android.widget.Toast.LENGTH_SHORT).show()
+                                    com.example.util.NotificationHelper.showToast(context, "Erro exception: ${e.message}", android.widget.Toast.LENGTH_LONG)
                                 }
                             }
                         }) {

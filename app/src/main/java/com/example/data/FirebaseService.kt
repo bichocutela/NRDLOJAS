@@ -11,6 +11,7 @@ import kotlinx.coroutines.channels.awaitClose
 import android.util.Log
 
 object FirebaseService {
+    var lastError: String? = null
     suspend fun publishLatestProduct(product: com.example.data.Product) {
         if (!isFirebaseConfigured()) return
         try {
@@ -41,6 +42,7 @@ object FirebaseService {
                     "searchCount" to product.searchCount,
                     "timestamp" to System.currentTimeMillis()
                 )).await()
+            publishLatestProduct(product)
         } catch (e: Exception) {
             Log.e("FirebaseService", "Error saving product", e)
         }
@@ -109,24 +111,51 @@ object FirebaseService {
     fun initialize(context: android.content.Context) {
         try {
             FirebaseApp.getInstance()
+            try {
+                val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+                if (auth.currentUser == null) {
+                    auth.signInAnonymously()
+                }
+            } catch (e: Exception) {
+            }
         } catch (e: Exception) {
-            val apiKey = com.example.BuildConfig.FIREBASE_API_KEY
-            val projectId = com.example.BuildConfig.FIREBASE_PROJECT_ID
-            val appId = com.example.BuildConfig.FIREBASE_APP_ID
-            
-            if (apiKey != "dummy" && projectId != "dummy" && appId != "dummy") {
-                val options = com.google.firebase.FirebaseOptions.Builder()
-                    .setApiKey(apiKey)
-                    .setProjectId(projectId)
-                    .setApplicationId(appId)
-                    .build()
-                FirebaseApp.initializeApp(context, options)
+            val rawApiKey = com.example.BuildConfig.FIREBASE_API_KEY
+            val rawProjectId = com.example.BuildConfig.FIREBASE_PROJECT_ID
+            val rawAppId = com.example.BuildConfig.FIREBASE_APP_ID
+                        
+            if (rawApiKey != "dummy" && rawProjectId != "dummy" && rawAppId != "dummy") {
+                // Corrigir possível inversão de Project ID e App ID no painel de secrets
+                val apiKey = rawApiKey
+                val appId = if (rawProjectId.contains(":") && !rawAppId.contains(":")) rawProjectId else rawAppId
+                val projectId = if (rawProjectId.contains(":") && !rawAppId.contains(":")) rawAppId else rawProjectId
+                
+                try {
+                    val options = com.google.firebase.FirebaseOptions.Builder()
+                        .setApiKey(apiKey)
+                        .setProjectId(projectId)
+                        .setApplicationId(appId)
+                        .setStorageBucket(projectId + ".appspot.com")
+                        .build()
+                    FirebaseApp.initializeApp(context, options)
+                    
+                    try {
+                        com.google.firebase.auth.FirebaseAuth.getInstance().signInAnonymously()
+                    } catch (e: Exception) {
+                        Log.e("FirebaseService", "Auth error", e)
+                    }
+                } catch (ex: Exception) {
+                    lastError = "Init error: " + ex.message
+                    Log.e("FirebaseService", "Erro ao inicializar Firebase", ex)
+                }
             }
         }
     }
 
     suspend fun uploadBanner(uri: Uri): String? {
-        if (!isFirebaseConfigured()) return null
+        if (!isFirebaseConfigured()) {
+            lastError = "Firebase not configured (initialize failed?)"
+            return null
+        }
         return try {
             val storageRef = FirebaseStorage.getInstance().reference.child("banners/hero_banner.jpg")
             storageRef.putFile(uri).await()
@@ -139,6 +168,7 @@ object FirebaseService {
                 
             downloadUrl.toString()
         } catch (e: Exception) {
+            lastError = e.message
             Log.e("FirebaseService", "Error uploading banner", e)
             null
         }

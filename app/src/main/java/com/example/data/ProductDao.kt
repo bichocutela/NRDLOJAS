@@ -17,6 +17,9 @@ interface ProductDao {
     @Query("SELECT category, COUNT(*) as count FROM products GROUP BY category ORDER BY count DESC")
     fun getProductsCountByCategory(): Flow<List<CategoryCount>>
 
+    @Query("SELECT * FROM products WHERE code = :code LIMIT 1")
+    suspend fun getProductByCodeSync(code: String): Product?
+
     @Query("SELECT * FROM products ORDER BY name ASC")
     fun getAllProducts(): Flow<List<Product>>
 
@@ -52,6 +55,10 @@ interface ProductDao {
     
     @Query("SELECT COUNT(*) FROM products")
     suspend fun getProductCount(): Int
+
+    @Query("DELETE FROM products WHERE id NOT IN (SELECT MIN(id) FROM products GROUP BY code)")
+    suspend fun deleteDuplicates()
+
     @Query("SELECT * FROM products ORDER BY id DESC LIMIT 1")
     fun getLatestProduct(): Flow<Product?>
 }

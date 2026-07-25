@@ -1,6 +1,6 @@
 package com.example.ui
 
-import android.widget.Toast
+import com.example.util.NotificationHelper
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -143,7 +143,7 @@ fun SettingsScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                 Button(onClick = { 
                     showSuggestionDialog = false
                     suggestionText = ""
-                    Toast.makeText(context, "Agradecemos pela sua sugestão! Ela será visível para o ADM.", Toast.LENGTH_LONG).show()
+                    NotificationHelper.showToast(context, "Agradecemos pela sua sugestão! Ela será visível para o ADM.", android.widget.Toast.LENGTH_LONG)
                 }) {
                     Text("Enviar")
                 }

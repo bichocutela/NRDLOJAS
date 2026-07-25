@@ -208,11 +208,6 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
 
 
     val context = LocalContext.current
-    LaunchedEffect(Unit) {
-        viewModel.syncMessage.collectLatest { message ->
-            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
-        }
-    }
 
     val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
     PullToRefreshBox(

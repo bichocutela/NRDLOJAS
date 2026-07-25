@@ -135,11 +135,8 @@ class MainActivity : ComponentActivity() {
             CompositionLocalProvider(LocalDensity provides customDensity) {
                 val context = androidx.compose.ui.platform.LocalContext.current
                 LaunchedEffect(Unit) {
-                    viewModel.syncProductsFromFirebase()
-                }
-                LaunchedEffect(Unit) {
                     viewModel.syncMessage.collect { msg ->
-                        android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
+                        com.example.util.NotificationHelper.showToast(context, msg, android.widget.Toast.LENGTH_LONG)
                     }
                 }
 

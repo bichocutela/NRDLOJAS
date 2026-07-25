@@ -10,9 +10,19 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.example.R
 
+import android.widget.Toast
+
 object NotificationHelper {
     private const val CHANNEL_ID = "new_products_channel"
     private const val NOTIFICATION_ID = 1001
+
+    private var currentToast: Toast? = null
+
+    fun showToast(context: Context, message: String, length: Int = Toast.LENGTH_SHORT) {
+        currentToast?.cancel()
+        currentToast = Toast.makeText(context, message, length)
+        currentToast?.show()
+    }
 
     fun createNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

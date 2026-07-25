@@ -1,35 +1,34 @@
 package com.example
 
-import android.app.Application
 import android.content.Context
-import android.content.Intent
-import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
 
 object CrashReporter {
+    private const val PREFS_NAME = "crash_prefs"
+    private const val CRASH_KEY = "last_crash"
+
     fun setup(context: Context) {
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, exception ->
-            try {
-                val sw = StringWriter()
-                exception.printStackTrace(PrintWriter(sw))
-                val logFile = File(context.filesDir, "crash_log.txt")
-                logFile.writeText(sw.toString())
-            } catch (e: Exception) {
-                // Ignore
-            }
+            val sw = StringWriter()
+            exception.printStackTrace(PrintWriter(sw))
+            val error = sw.toString()
+            
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putString(CRASH_KEY, error)
+                .commit()
+                
             defaultHandler?.uncaughtException(thread, exception)
         }
     }
 
     fun getCrashLog(context: Context): String? {
-        val logFile = File(context.filesDir, "crash_log.txt")
-        return if (logFile.exists()) logFile.readText() else null
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString(CRASH_KEY, null)
     }
 
     fun clearCrashLog(context: Context) {
-        val logFile = File(context.filesDir, "crash_log.txt")
-        if (logFile.exists()) logFile.delete()
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().remove(CRASH_KEY).apply()
     }
 }
