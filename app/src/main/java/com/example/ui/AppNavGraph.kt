@@ -205,10 +205,10 @@ fun LoginDrawerContent(
             Button(
                 onClick = {
                     if (username == "mestre" && password == "nrdlojas") {
-                        loginStatus = "Login Mestre realizado!"
+                        loginStatus = null
                         onLoginSuccess("mestre")
                     } else if (username == "admin" && password == "nrdlojas") {
-                        loginStatus = "Login Admin realizado!"
+                        loginStatus = null
                         onLoginSuccess("admin")
                     } else {
                         // Firebase Auth
@@ -217,11 +217,11 @@ fun LoginDrawerContent(
                             loginStatus = "Autenticando..."
                             val result = viewModel.authRepository.login(email, password)
                             if (result is com.example.data.AuthResult.Success) {
-                                loginStatus = "Login realizado com sucesso!"
+                                loginStatus = null
                                 onLoginSuccess(if (username == "teste" || email.startsWith("teste@")) "teste" else "usuario")
                             } else {
                                 // Fallback para login local se Firebase falhar (Auth não configurado)
-                                loginStatus = "Entrando no modo local..."
+                                loginStatus = null
                                 onLoginSuccess(if (username == "teste" || email.startsWith("teste@")) "teste" else "usuario")
                             }
                         }
@@ -266,20 +266,13 @@ fun LoginDrawerContent(
                 )
             }
             OutlinedButton(
-                onClick = onLogout,
+                onClick = { loginStatus = null; onLogout() },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Sair")
             }
         }
         
-        if (loginStatus != null) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = loginStatus!!,
-                color = if (loginStatus?.startsWith("Login") == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-            )
-        }
         
         Spacer(modifier = Modifier.height(24.dp))
         HorizontalDivider()

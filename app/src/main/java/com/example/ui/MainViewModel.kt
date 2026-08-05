@@ -215,14 +215,15 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
     private val _syncMessage = MutableSharedFlow<String>()
     val syncMessage = _syncMessage.asSharedFlow()
 
-    fun addProduct(name: String, code: String, category: String, unit: String) {
+    fun addProduct(name: String, code: String, category: String, unit: String, imageUrl: String? = null) {
         viewModelScope.launch {
             val product = Product(
                 code = code,
                 name = name,
                 searchName = name.lowercase().replace(Regex("[áàâã]"), "a").replace(Regex("[éèê]"), "e").replace(Regex("[íìî]"), "i").replace(Regex("[óòôõ]"), "o").replace(Regex("[úùû]"), "u").replace(Regex("[ç]"), "c"),
                 category = category,
-                unit = unit
+                unit = unit,
+                imageUrl = imageUrl
             )
             repository.insertProduct(product)
             if (!com.example.data.FirebaseService.isFirebaseConfigured()) {
@@ -246,6 +247,10 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
                 _isSyncing.value = false
                 return@launch
             }
+                val bannerUrl = com.example.data.FirebaseService.getBannerUrl()
+                if (bannerUrl != null) {
+                    userPreferences.setBannerImageUri(bannerUrl)
+                }
             val remoteProducts = com.example.data.FirebaseService.getAllProducts()
             if (remoteProducts.isNotEmpty()) {
                 repository.insertProducts(remoteProducts)
@@ -265,6 +270,10 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
                 val localProducts = repository.getAllProductsSync()
                 if (localProducts.isNotEmpty()) {
                     com.example.data.FirebaseService.syncAllProducts(localProducts)
+                }
+                val bannerUrl = com.example.data.FirebaseService.getBannerUrl()
+                if (bannerUrl != null) {
+                    userPreferences.setBannerImageUri(bannerUrl)
                 }
                 val remoteProducts = com.example.data.FirebaseService.getAllProducts()
                 if (remoteProducts.isNotEmpty()) {

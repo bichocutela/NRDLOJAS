@@ -213,6 +213,31 @@ object FirebaseService {
         }
     }
 
+    suspend fun setBannerUrlDirectly(url: String): String? {
+        if (!isFirebaseConfigured()) {
+            lastError = "Firebase not configured"
+            return url
+        }
+        return try {
+            val firestore = FirebaseFirestore.getInstance()
+            firestore.collection("config").document("appSettings")
+                .set(mapOf("bannerUrl" to url)).await()
+            url
+        } catch (e: Exception) {
+            lastError = e.message
+            url
+        }
+    }
+    suspend fun getBannerUrl(): String? {
+        if (!isFirebaseConfigured()) return null
+        return try {
+            val firestore = FirebaseFirestore.getInstance()
+            val snapshot = firestore.collection("config").document("appSettings").get().await()
+            snapshot.getString("bannerUrl")
+        } catch (e: Exception) {
+            null
+        }
+    }
     fun observeBannerUrl(): Flow<String?> = callbackFlow {
         if (!isFirebaseConfigured()) {
             trySend(null)

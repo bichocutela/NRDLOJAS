@@ -66,6 +66,7 @@ fun AdminScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
     var productName by remember { mutableStateOf("") }
     var productCode by remember { mutableStateOf("") }
     var productCategory by remember { mutableStateOf("") }
+    var productImageUrl by remember { mutableStateOf("") }
     var statusMessage by remember { mutableStateOf<String?>(null) }
 
     val context = LocalContext.current
@@ -99,6 +100,7 @@ fun AdminScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
             productName = ""
             productCode = ""
             productCategory = ""
+                        productImageUrl = ""
             
             // Convert URI to Bitmap
             try {
@@ -253,6 +255,7 @@ fun AdminScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                         productName = ""
                         productCode = ""
                         productCategory = ""
+                        productImageUrl = ""
                         showManualForm = true
                         statusMessage = null
                     }
@@ -312,6 +315,13 @@ fun AdminScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                             label = { Text("Categoria") },
                             modifier = Modifier.fillMaxWidth()
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = productImageUrl,
+                            onValueChange = { productImageUrl = it },
+                            label = { Text("URL da Imagem (Google Drive, etc)") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
                         
                         Spacer(modifier = Modifier.height(24.dp))
                         
@@ -322,7 +332,8 @@ fun AdminScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                                         name = productName,
                                         code = productCode,
                                         category = if (productCategory.isNotBlank()) productCategory else "Geral",
-                                        unit = "un"
+                                        unit = "un",
+                                        imageUrl = productImageUrl.ifBlank { null }?.let { com.example.util.ImageUrlHelper.normalizeUrl(it) }
                                     )
                                     com.example.util.NotificationHelper.showNewProductNotification(context, productName)
                                     showManualForm = false
@@ -559,7 +570,7 @@ fun AdminProductItem(product: Product, viewModel: MainViewModel) {
                             code = editCode, 
                             name = editName, 
                             searchName = searchName,
-                            imageUrl = editImageUrl.ifBlank { null }
+                            imageUrl = editImageUrl.ifBlank { null }?.let { com.example.util.ImageUrlHelper.normalizeUrl(it) }
                         ))
                         isEditing = false
                     },
