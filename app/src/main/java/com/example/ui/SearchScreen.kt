@@ -153,6 +153,18 @@ fun StylizedText(
 @Composable
 fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
     val bannerImageUri by viewModel.userPreferences.bannerImageUri.collectAsState(initial = null)
+    
+    val bannerModel = remember(bannerImageUri) {
+        if (bannerImageUri != null && bannerImageUri!!.startsWith("data:image")) {
+            val base64 = bannerImageUri!!.substringAfter("base64,")
+            android.util.Base64.decode(base64, android.util.Base64.DEFAULT)
+        } else if (bannerImageUri != null && bannerImageUri!!.isNotEmpty()) {
+            bannerImageUri
+        } else {
+            null
+        }
+    }
+    
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
     val mostUsed by viewModel.mostUsed.collectAsStateWithLifecycle()
@@ -228,7 +240,7 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
                 modifier = Modifier.fillMaxSize()
             ) {
                 coil.compose.AsyncImage(
-                    model = bannerImageUri?.takeIf { it.isNotEmpty() } ?: R.drawable.hero_banner,
+                    model = bannerModel ?: R.drawable.hero_banner,
                     contentDescription = "Banner Nordestão",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
@@ -550,6 +562,10 @@ fun ProductCard(product: Product, viewModel: MainViewModel) {
             vibrator?.vibrate(50)
         }
     }
+    var showDialog by remember { mutableStateOf(false) }
+    if (showDialog) {
+        ProductBarcodeDialog(product = product, onDismiss = { showDialog = false })
+    }
 
     Row(
         modifier = Modifier
@@ -557,7 +573,7 @@ fun ProductCard(product: Product, viewModel: MainViewModel) {
             .clip(RoundedCornerShape(24.dp))
             .background(Color.White)
             .border(1.dp, MaterialTheme.colorScheme.surface, RoundedCornerShape(24.dp))
-            .clickable { viewModel.onProductSearched(product) }
+            .clickable { triggerVibration(); viewModel.onProductSearched(product); showDialog = true }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -663,6 +679,10 @@ fun MiniProductCard(product: Product, viewModel: MainViewModel) {
         }
     }
 
+    var showDialog by remember { mutableStateOf(false) }
+    if (showDialog) {
+        ProductBarcodeDialog(product = product, onDismiss = { showDialog = false })
+    }
     Column(
         modifier = Modifier
             .width(160.dp)
@@ -670,7 +690,7 @@ fun MiniProductCard(product: Product, viewModel: MainViewModel) {
             .clip(RoundedCornerShape(24.dp))
             .background(Color.White)
             .border(1.dp, MaterialTheme.colorScheme.surface, RoundedCornerShape(24.dp))
-            .clickable { viewModel.onProductSearched(product) }
+            .clickable { triggerVibration(); viewModel.onProductSearched(product); showDialog = true }
             .padding(16.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
@@ -772,83 +792,9 @@ fun HistoryItem(product: Product, viewModel: MainViewModel) {
     }
 
     var showDialog by remember { mutableStateOf(false) }
-    var animateIn by remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
-
-    fun closeDialog() {
-        animateIn = false
-        coroutineScope.launch {
-            delay(200)
-            showDialog = false
-        }
-    }
-
     if (showDialog) {
-        androidx.compose.runtime.LaunchedEffect(Unit) {
-            animateIn = true
-        }
-        Dialog(onDismissRequest = { closeDialog() }) {
-            AnimatedVisibility(
-                visible = animateIn,
-                enter = fadeIn() + scaleIn(initialScale = 0.8f, animationSpec = tween(300, easing = EaseOutBack)),
-                exit = fadeOut(tween(200)) + scaleOut(targetScale = 0.8f, animationSpec = tween(200, easing = EaseIn))
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(32.dp),
-                    color = Color.White,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally, 
-                        modifier = Modifier.fillMaxWidth().padding(24.dp)
-                    ) {
-                        Text(
-                            text = product.name,
-                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black),
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = product.code,
-                            style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        val barcodeBitmap = generateBarcodeBitmap(product.code)
-                        if (barcodeBitmap != null) {
-                            Image(
-                                bitmap = barcodeBitmap,
-                                contentDescription = "Código de barras",
-                                contentScale = ContentScale.FillBounds,
-                                filterQuality = FilterQuality.None,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(90.dp)
-                                    .padding(horizontal = 8.dp)
-                                    .background(androidx.compose.ui.graphics.Color.White)
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                        }
-                        
-                        Text(
-                            text = "Código de barras / Referência",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Button(
-                            onClick = { closeDialog() },
-                            modifier = Modifier.fillMaxWidth().height(56.dp),
-                            shape = RoundedCornerShape(24.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Text("FECHAR", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        }
-                    }
-                }
-            }
-        }
+        ProductBarcodeDialog(product = product, onDismiss = { showDialog = false })
     }
-
     Row(
         modifier = Modifier
             .fillMaxWidth()

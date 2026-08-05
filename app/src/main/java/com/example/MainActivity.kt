@@ -133,10 +133,10 @@ class MainActivity : ComponentActivity() {
 
 
             CompositionLocalProvider(LocalDensity provides customDensity) {
-                val context = androidx.compose.ui.platform.LocalContext.current
+                val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
                 LaunchedEffect(Unit) {
                     viewModel.syncMessage.collect { msg ->
-                        com.example.util.NotificationHelper.showToast(context, msg, android.widget.Toast.LENGTH_LONG)
+                        snackbarHostState.showSnackbar(msg)
                     }
                 }
 
@@ -155,6 +155,11 @@ class MainActivity : ComponentActivity() {
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
                         AppNavGraph(viewModel)
+                        
+                        androidx.compose.material3.SnackbarHost(
+                            hostState = snackbarHostState,
+                            modifier = Modifier.align(Alignment.BottomCenter)
+                        )
                         
                         AnimatedVisibility(
                             visible = showSplash,

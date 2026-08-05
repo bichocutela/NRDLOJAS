@@ -249,11 +249,33 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
             val remoteProducts = com.example.data.FirebaseService.getAllProducts()
             if (remoteProducts.isNotEmpty()) {
                 repository.insertProducts(remoteProducts)
-                _syncMessage.emit("Produtos atualizados da nuvem!")
-            } else {
-                _syncMessage.emit("Nuvem já está sincronizada.")
             }
             _isSyncing.value = false
+        }
+
+    }
+    fun syncDatabase() {
+        viewModelScope.launch {
+            _isSyncing.value = true
+            try {
+                if (!com.example.data.FirebaseService.isFirebaseConfigured()) {
+                    _syncMessage.emit("Aviso: Nuvem não configurada. Impossível sincronizar.")
+                    return@launch
+                }
+                val localProducts = repository.getAllProductsSync()
+                if (localProducts.isNotEmpty()) {
+                    com.example.data.FirebaseService.syncAllProducts(localProducts)
+                }
+                val remoteProducts = com.example.data.FirebaseService.getAllProducts()
+                if (remoteProducts.isNotEmpty()) {
+                    repository.insertProducts(remoteProducts)
+                }
+                _syncMessage.emit("Banco de dados sincronizado com sucesso!")
+            } catch (e: Exception) {
+                _syncMessage.emit("Erro ao sincronizar: ${e.message}")
+            } finally {
+                _isSyncing.value = false
+            }
         }
     }
     fun clearNewProductsCount() {

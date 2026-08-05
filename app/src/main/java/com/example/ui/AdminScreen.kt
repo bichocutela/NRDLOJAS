@@ -1,6 +1,7 @@
 package com.example.ui
 
 import android.content.Intent
+import androidx.compose.material.icons.filled.Sync
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
@@ -73,6 +74,7 @@ fun AdminScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
     
     val categoryCounts by viewModel.productsCountByCategory.collectAsStateWithLifecycle()
     val allProducts by viewModel.allProducts.collectAsStateWithLifecycle()
+    val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
     val chartEntryModelProducer = remember { ChartEntryModelProducer() }
     
     LaunchedEffect(categoryCounts) {
@@ -82,6 +84,12 @@ fun AdminScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
         chartEntryModelProducer.setEntries(entries)
     }
 
+
+    LaunchedEffect(Unit) {
+        viewModel.syncMessage.collect { message ->
+            snackbarHostState.showSnackbar(message)
+        }
+    }
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
@@ -196,6 +204,25 @@ fun AdminScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                     Text("Exportar Inventário (PDF)")
                 }
                 Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = { viewModel.syncDatabase() },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isSyncing
+                ) {
+                    if (isSyncing) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp), 
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Sincronizando...")
+                    } else {
+                        Icon(Icons.Default.Sync, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Sincronizar Banco de Dados")
+                    }
+                }
             }
             
             Text(

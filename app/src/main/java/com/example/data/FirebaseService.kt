@@ -48,6 +48,31 @@ object FirebaseService {
         }
     }
 
+    suspend fun syncAllProducts(products: List<com.example.data.Product>) {
+        if (!isFirebaseConfigured()) return
+        try {
+            val firestore = FirebaseFirestore.getInstance()
+            products.chunked(500).forEach { chunk ->
+                val batch = firestore.batch()
+                chunk.forEach { product ->
+                    val docRef = firestore.collection("products").document(product.code)
+                    batch.set(docRef, mapOf(
+                        "code" to product.code,
+                        "name" to product.name,
+                        "searchName" to product.searchName,
+                        "category" to product.category,
+                        "unit" to product.unit,
+                        "imageUrl" to product.imageUrl,
+                        "searchCount" to product.searchCount,
+                        "timestamp" to System.currentTimeMillis()
+                    ))
+                }
+                batch.commit().await()
+            }
+        } catch (e: Exception) {
+            Log.e("FirebaseService", "Error in syncAllProducts", e)
+        }
+    }
     suspend fun getAllProducts(): List<com.example.data.Product> {
         if (!isFirebaseConfigured()) return emptyList()
         return try {
@@ -151,22 +176,36 @@ object FirebaseService {
         }
     }
 
-    suspend fun uploadBanner(uri: Uri): String? {
+    suspend fun uploadBanner(context: android.content.Context, uri: Uri): String? {
         if (!isFirebaseConfigured()) {
             lastError = "Firebase not configured (initialize failed?)"
             return null
         }
         return try {
-            val storageRef = FirebaseStorage.getInstance().reference.child("banners/hero_banner.jpg")
-            storageRef.putFile(uri).await()
-            val downloadUrl = storageRef.downloadUrl.await()
+            val inputStream = context.contentResolver.openInputStream(uri)
+            val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
+            inputStream?.close()
+
+            val maxW = 1024
+            val maxH = 1024
+            val scaledBitmap = if (bitmap.width > maxW || bitmap.height > maxH) {
+                val ratio = Math.min(maxW.toFloat() / bitmap.width, maxH.toFloat() / bitmap.height)
+                android.graphics.Bitmap.createScaledBitmap(bitmap, (bitmap.width * ratio).toInt(), (bitmap.height * ratio).toInt(), true)
+            } else {
+                bitmap
+            }
+
+            val baos = java.io.ByteArrayOutputStream()
+            scaledBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 60, baos)
+            val base64Data = android.util.Base64.encodeToString(baos.toByteArray(), android.util.Base64.NO_WRAP)
+            val dataUrl = "data:image/jpeg;base64,$base64Data"
             
             // Save to Firestore
             val firestore = FirebaseFirestore.getInstance()
             firestore.collection("config").document("appSettings")
-                .set(mapOf("bannerUrl" to downloadUrl.toString())).await()
+                .set(mapOf("bannerUrl" to dataUrl)).await()
                 
-            downloadUrl.toString()
+            dataUrl
         } catch (e: Exception) {
             lastError = e.message
             Log.e("FirebaseService", "Error uploading banner", e)

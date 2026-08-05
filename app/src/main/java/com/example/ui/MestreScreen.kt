@@ -137,7 +137,7 @@ fun MestreScreen(
                             showConfirmDialog = false
                             coroutineScope.launch {
                                 try {
-                                    val url = com.example.data.FirebaseService.uploadBanner(selectedUri!!)
+                                    val url = com.example.data.FirebaseService.uploadBanner(context, selectedUri!!)
                                     if (url != null) {
                                         com.example.util.NotificationHelper.showToast(context, "Fundo alterado com sucesso para todos!", android.widget.Toast.LENGTH_SHORT)
                                     } else {
