@@ -16,6 +16,9 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,6 +81,76 @@ fun AboutScreen(onNavigateBack: () -> Unit) {
                 url = "https://pravoce.nordestao.com.br/tabloids",
                 uriHandler = uriHandler
             )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+            var isChecking by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+            var showUpdateDialog by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+            var updateTag by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+            var updateUrl by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+
+            if (showUpdateDialog) {
+                AlertDialog(
+                    onDismissRequest = { showUpdateDialog = false },
+                    title = { Text("Atualização Disponível") },
+                    text = { Text("Uma nova versão ($updateTag) está disponível. Deseja baixar e instalar agora?") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            showUpdateDialog = false
+                            com.example.util.UpdateChecker.downloadAndInstallApk(context, updateUrl, updateTag)
+                        }) {
+                            Text("Sim")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showUpdateDialog = false }) {
+                            Text("Não")
+                        }
+                    }
+                )
+            }
+
+            Button(
+                onClick = {
+                    isChecking = true
+                    coroutineScope.launch {
+                        val release = com.example.util.UpdateChecker.checkLatestRelease()
+                        isChecking = false
+                        if (release != null) {
+                            val (tag, url) = release
+                            val currentVersion = try {
+                                context.packageManager.getPackageInfo(context.packageName, 0).versionName
+                            } catch (e: Exception) {
+                                "1.0"
+                            }
+                            // Simplified version check
+                            if (tag.removePrefix("v") != currentVersion) {
+                                updateTag = tag
+                                updateUrl = url
+                                showUpdateDialog = true
+                            } else {
+                                android.widget.Toast.makeText(context, "Você já possui a última versão.", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        } else {
+                            android.widget.Toast.makeText(context, "Erro ao verificar atualizações.", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isChecking
+            ) {
+                if (isChecking) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Verificar Atualizações")
+                }
+            }
         }
     }
 }
