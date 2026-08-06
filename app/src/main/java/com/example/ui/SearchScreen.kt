@@ -111,7 +111,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.ImageBitmap
 
 
-@Suppress("DEPRECATION")
 @Composable
 fun StylizedText(
     text: String,
@@ -151,7 +150,6 @@ fun StylizedText(
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Suppress("DEPRECATION")
 @Composable
 fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
     val bannerImageUri by viewModel.userPreferences.bannerImageUri.collectAsState(initial = null)
@@ -484,7 +482,6 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
     }
 }
 
-@Suppress("DEPRECATION")
 @Composable
 fun SectionHeader(title: String) {
     Row(
@@ -512,7 +509,6 @@ fun SectionHeader(title: String) {
     }
 }
 
-@Suppress("DEPRECATION")
 @Composable
 fun CategorySection(viewModel: MainViewModel) {
     val categories = listOf(
@@ -548,7 +544,6 @@ fun CategorySection(viewModel: MainViewModel) {
     }
 }
 
-@Suppress("DEPRECATION")
 @Composable
 fun ProductCard(product: Product, viewModel: MainViewModel) {
     val vibrateOnClick by viewModel.userPreferences.vibrateOnClick.collectAsState(initial = true)
@@ -557,7 +552,7 @@ fun ProductCard(product: Product, viewModel: MainViewModel) {
     val boldOutline by viewModel.userPreferences.boldOutline.collectAsState(initial = false)
     val uppercaseBold by viewModel.userPreferences.uppercaseBold.collectAsState(initial = false)
     val context = LocalContext.current
-    val vibrator = remember { context.getSystemService(android.content.Context.VIBRATOR_SERVICE) as? Vibrator }
+    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator }
     fun triggerVibration() {
         if (!vibrateOnClick) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -665,7 +660,6 @@ fun ProductCard(product: Product, viewModel: MainViewModel) {
 }
 
 
-@Suppress("DEPRECATION")
 @Composable
 fun MiniProductCard(product: Product, viewModel: MainViewModel) {
     val vibrateOnClick by viewModel.userPreferences.vibrateOnClick.collectAsState(initial = true)
@@ -674,7 +668,7 @@ fun MiniProductCard(product: Product, viewModel: MainViewModel) {
     val boldOutline by viewModel.userPreferences.boldOutline.collectAsState(initial = false)
     val uppercaseBold by viewModel.userPreferences.uppercaseBold.collectAsState(initial = false)
     val context = LocalContext.current
-    val vibrator = remember { context.getSystemService(android.content.Context.VIBRATOR_SERVICE) as? Vibrator }
+    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator }
     fun triggerVibration() {
         if (!vibrateOnClick) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -778,7 +772,6 @@ fun MiniProductCard(product: Product, viewModel: MainViewModel) {
     }
 }
 
-@Suppress("DEPRECATION")
 @Composable
 fun HistoryItem(product: Product, viewModel: MainViewModel) {
     val vibrateOnClick by viewModel.userPreferences.vibrateOnClick.collectAsState(initial = true)
@@ -787,7 +780,7 @@ fun HistoryItem(product: Product, viewModel: MainViewModel) {
     val boldOutline by viewModel.userPreferences.boldOutline.collectAsState(initial = false)
     val uppercaseBold by viewModel.userPreferences.uppercaseBold.collectAsState(initial = false)
     val context = LocalContext.current
-    val vibrator = remember { context.getSystemService(android.content.Context.VIBRATOR_SERVICE) as? Vibrator }
+    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator }
     fun triggerVibration() {
         if (!vibrateOnClick) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -849,7 +842,6 @@ fun HistoryItem(product: Product, viewModel: MainViewModel) {
     }
 }
 
-@Suppress("DEPRECATION")
 @Composable
 fun NordestaoLogo() {
     Row(
@@ -892,7 +884,6 @@ fun NordestaoLogo() {
     }
 }
 
-@Suppress("DEPRECATION")
 @Composable
 fun LogoCircle(color: Color, icon: androidx.compose.ui.graphics.vector.ImageVector) {
     Box(
@@ -928,11 +919,11 @@ fun generateBarcodeBitmap(data: String): ImageBitmap? {
     try {
         val writer = MultiFormatWriter()
         val hints = EnumMap<EncodeHintType, Any>(EncodeHintType::class.java)
-        hints[EncodeHintType.MARGIN] = 2 // add margin for scanner readability
+        hints[EncodeHintType.MARGIN] = 0 // we handle margin in Compose
         
         // Generate with higher horizontal resolution to prevent artifacts, 
         // but even with FilterQuality.None, drawing sharp is best
-        val bitMatrix = writer.encode(data, BarcodeFormat.CODE_128, 1024, 400, hints)
+        val bitMatrix = writer.encode(data, BarcodeFormat.CODE_128, 1024, 256, hints)
         val width = bitMatrix.width
         val height = bitMatrix.height
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)

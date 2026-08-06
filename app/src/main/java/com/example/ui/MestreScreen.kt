@@ -1,5 +1,4 @@
 package com.example.ui
-import androidx.compose.material.icons.filled.CloudDownload
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -14,8 +13,6 @@ import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -34,8 +31,6 @@ fun MestreScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
-    val coroutineScope = rememberCoroutineScope()
-    val context = androidx.compose.ui.platform.LocalContext.current
     
     LaunchedEffect(Unit) {
         viewModel.syncMessage.collect { message ->
@@ -145,31 +140,6 @@ fun MestreScreen(
                     Column {
                         Text("Adicionar Novos Produtos (IA)", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
                         Text("Adicionar usando Gemini ou manualmente.", style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            OutlinedCard(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = {
-                    coroutineScope.launch {
-                        val hasUpdate = com.example.util.GitHubUpdater.checkForUpdates(context, com.example.BuildConfig.VERSION_NAME)
-                        if (!hasUpdate) {
-                            com.example.util.NotificationHelper.showToast(context, "Você já possui a versão mais recente.", android.widget.Toast.LENGTH_SHORT)
-                        }
-                    }
-                }
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.CloudDownload, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column {
-                        Text("Sincronizar Atualização (GitHub)", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
-                        Text("Baixar e instalar nova versão do app.", style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }

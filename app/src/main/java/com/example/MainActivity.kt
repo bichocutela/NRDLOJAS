@@ -7,9 +7,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.Text
 import androidx.compose.material3.Surface
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
@@ -57,7 +54,7 @@ class MainActivity : ComponentActivity() {
         Room.databaseBuilder(
             applicationContext,
             AppDatabase::class.java, "products.db"
-        ).fallbackToDestructiveMigration(true).build()
+        ).fallbackToDestructiveMigration().build()
     }
     
     private val repository by lazy {
@@ -79,7 +76,6 @@ class MainActivity : ComponentActivity() {
         if (crashLog != null) {
             CrashReporter.clearCrashLog(this)
             setContent {
-
             
                 androidx.compose.material3.MaterialTheme {
                     androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
@@ -114,7 +110,6 @@ class MainActivity : ComponentActivity() {
         
         enableEdgeToEdge()
         setContent {
-
 
             val fontScale by userPreferences.fontScale.collectAsState(initial = 1.0f)
             val latestFirebase by viewModel.latestProduct.collectAsState(null)

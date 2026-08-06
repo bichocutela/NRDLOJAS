@@ -1,2 +1,0 @@
-sed -i 's|if \[ -f "debug.keystore.base64" \]; then|if \[ ! -f "debug.keystore" \]; then\n          keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "C=US, O=Android, CN=Android Debug"|g' .github/workflows/main.yml
-sed -i 's|base64 -d debug.keystore.base64 > debug.keystore||g' .github/workflows/main.yml
