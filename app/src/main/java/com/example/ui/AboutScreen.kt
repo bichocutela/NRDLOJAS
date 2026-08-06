@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.ClickableText
 
 @OptIn(ExperimentalMaterial3Api::class)
+@androidx.compose.foundation.ExperimentalFoundationApi
+@Suppress("DEPRECATION")
 @Composable
 fun AboutScreen(onNavigateBack: () -> Unit) {
     val uriHandler = LocalUriHandler.current
@@ -82,6 +84,8 @@ fun AboutScreen(onNavigateBack: () -> Unit) {
     }
 }
 
+@androidx.compose.foundation.ExperimentalFoundationApi
+@Suppress("DEPRECATION")
 @Composable
 fun LinkText(text: String, linkText: String, url: String, uriHandler: androidx.compose.ui.platform.UriHandler) {
     val annotatedString = buildAnnotatedString {

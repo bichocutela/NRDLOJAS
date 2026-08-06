@@ -108,7 +108,7 @@ fun AdminScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                     val source = ImageDecoder.createSource(context.contentResolver, it)
                     ImageDecoder.decodeBitmap(source)
                 } else {
-                    MediaStore.Images.Media.getBitmap(context.contentResolver, it)
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) android.graphics.ImageDecoder.decodeBitmap(android.graphics.ImageDecoder.createSource(context.contentResolver, it)) else MediaStore.Images.Media.getBitmap(context.contentResolver, it)
                 }
                 
                 // Process image with Gemini

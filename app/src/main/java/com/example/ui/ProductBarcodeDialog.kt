@@ -35,6 +35,7 @@ import com.example.data.askGeminiAboutProduct
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+@Suppress("DEPRECATION")
 @Composable
 fun ProductBarcodeDialog(product: Product, onDismiss: () -> Unit) {
     val showDialog = remember { mutableStateOf(true) }
@@ -113,7 +114,7 @@ fun ProductBarcodeDialog(product: Product, onDismiss: () -> Unit) {
                         )
                         
                         Spacer(modifier = Modifier.height(24.dp))
-                        Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         Spacer(modifier = Modifier.height(16.dp))
                         
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
