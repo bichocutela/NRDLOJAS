@@ -94,17 +94,23 @@ fun ProductBarcodeDialog(product: Product, onDismiss: () -> Unit) {
 
                         val barcodeBitmap = generateBarcodeBitmap(product.code)
                         if (barcodeBitmap != null) {
-                            Image(
-                                bitmap = barcodeBitmap,
-                                contentDescription = "Código de barras",
-                                contentScale = ContentScale.FillBounds,
-                                filterQuality = FilterQuality.None,
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(90.dp)
-                                    .padding(horizontal = 8.dp)
                                     .background(Color.White)
-                            )
+                                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Image(
+                                    bitmap = barcodeBitmap,
+                                    contentDescription = "Código de barras",
+                                    contentScale = ContentScale.FillBounds,
+                                    filterQuality = FilterQuality.None,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(120.dp)
+                                )
+                            }
                             Spacer(modifier = Modifier.height(16.dp))
                         }
 

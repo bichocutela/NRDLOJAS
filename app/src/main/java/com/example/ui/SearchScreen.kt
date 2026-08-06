@@ -928,11 +928,11 @@ fun generateBarcodeBitmap(data: String): ImageBitmap? {
     try {
         val writer = MultiFormatWriter()
         val hints = EnumMap<EncodeHintType, Any>(EncodeHintType::class.java)
-        hints[EncodeHintType.MARGIN] = 0 // we handle margin in Compose
+        hints[EncodeHintType.MARGIN] = 2 // add margin for scanner readability
         
         // Generate with higher horizontal resolution to prevent artifacts, 
         // but even with FilterQuality.None, drawing sharp is best
-        val bitMatrix = writer.encode(data, BarcodeFormat.CODE_128, 1024, 256, hints)
+        val bitMatrix = writer.encode(data, BarcodeFormat.CODE_128, 1024, 400, hints)
         val width = bitMatrix.width
         val height = bitMatrix.height
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)

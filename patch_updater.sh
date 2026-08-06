@@ -1,3 +1,4 @@
+cat << 'INNER_EOF' > app/src/main/java/com/example/util/GitHubUpdater.kt.new
 package com.example.util
 
 import android.app.DownloadManager
@@ -119,3 +120,5 @@ object GitHubUpdater {
         }
     }
 }
+INNER_EOF
+mv app/src/main/java/com/example/util/GitHubUpdater.kt.new app/src/main/java/com/example/util/GitHubUpdater.kt
