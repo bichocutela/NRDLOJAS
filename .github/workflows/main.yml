@@ -20,17 +20,11 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
-    - name: Fix Corrupt Gradle Wrapper Jar
-      run: |
-        rm -f gradle/wrapper/gradle-wrapper.jar
-        mkdir -p gradle/wrapper
-        curl -fsSL -o gradle/wrapper/gradle-wrapper.jar "https://raw.githubusercontent.com/gradle/gradle/v8.7.0/gradle/wrapper/gradle-wrapper.jar"
-
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
 
     - name: Build with Gradle
-      run: ./gradlew assembleDebug
+      run: gradle assembleDebug
 
     - name: Get Version Name
       id: version
