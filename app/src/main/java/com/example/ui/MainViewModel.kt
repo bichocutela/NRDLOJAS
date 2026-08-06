@@ -145,7 +145,7 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
                 )
                 val response = RetrofitClient.service.generateContent(BuildConfig.GEMINI_API_KEY, request)
                 _aiProductDetails.value = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: "Informações não disponíveis."
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 _aiProductDetails.value = "Erro ao buscar informações: ${e.message}"
             } finally {
                 _isAiLoading.value = false
@@ -196,7 +196,7 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
                 updatedMessages.add(ChatMessage(responseText, false))
                 _chatMessages.value = updatedMessages
 
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 val updatedMessages = _chatMessages.value.toMutableList()
                 updatedMessages.add(ChatMessage("Erro ao conectar com a IA: ${e.message}", false))
                 _chatMessages.value = updatedMessages
@@ -265,6 +265,7 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
             try {
                 if (!com.example.data.FirebaseService.isFirebaseConfigured()) {
                     _syncMessage.emit("Aviso: Nuvem não configurada. Impossível sincronizar.")
+                    _isSyncing.value = false
                     return@launch
                 }
                 val localProducts = repository.getAllProductsSync()
@@ -280,7 +281,7 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
                     repository.insertProducts(remoteProducts)
                 }
                 _syncMessage.emit("Banco de dados sincronizado com sucesso!")
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 _syncMessage.emit("Erro ao sincronizar: ${e.message}")
             } finally {
                 _isSyncing.value = false

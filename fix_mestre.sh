@@ -1,3 +1,4 @@
+cat << 'INNER_EOF' > app/src/main/java/com/example/ui/MestreScreen.kt
 package com.example.ui
 
 import androidx.compose.foundation.layout.*
@@ -318,3 +319,4 @@ fun InfoCard(icon: androidx.compose.ui.graphics.vector.ImageVector, title: Strin
         }
     }
 }
+INNER_EOF

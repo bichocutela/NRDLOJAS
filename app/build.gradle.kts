@@ -29,9 +29,9 @@ android {
       keyPassword = System.getenv("KEY_PASSWORD")
     }
     create("debugConfig") {
-      storeFile = file("${rootDir}/debug.keystore")
+      storeFile = file("${projectDir}/keystore.jks")
       storePassword = "android"
-      keyAlias = "androiddebugkey"
+      keyAlias = "app-key"
       keyPassword = "android"
     }
   }
