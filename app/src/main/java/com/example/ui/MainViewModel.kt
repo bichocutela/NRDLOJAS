@@ -247,10 +247,6 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
                 _isSyncing.value = false
                 return@launch
             }
-                val bannerUrl = com.example.data.FirebaseService.getBannerUrl()
-                if (bannerUrl != null) {
-                    userPreferences.setBannerImageUri(bannerUrl)
-                }
             val remoteProducts = com.example.data.FirebaseService.getAllProducts()
             if (remoteProducts.isNotEmpty()) {
                 repository.insertProducts(remoteProducts)
@@ -271,10 +267,6 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
                 val localProducts = repository.getAllProductsSync()
                 if (localProducts.isNotEmpty()) {
                     com.example.data.FirebaseService.syncAllProducts(localProducts)
-                }
-                val bannerUrl = com.example.data.FirebaseService.getBannerUrl()
-                if (bannerUrl != null) {
-                    userPreferences.setBannerImageUri(bannerUrl)
                 }
                 val remoteProducts = com.example.data.FirebaseService.getAllProducts()
                 if (remoteProducts.isNotEmpty()) {
