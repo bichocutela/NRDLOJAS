@@ -172,6 +172,8 @@ object FirebaseService {
                     lastError = "Init error: " + ex.message
                     Log.e("FirebaseService", "Erro ao inicializar Firebase", ex)
                 }
+            } else {
+                lastError = "API_KEY=" + (if(rawApiKey=="dummy") "FALTA" else "OK") + ", PROJ=" + (if(rawProjectId=="dummy") "FALTA" else "OK") + ", APP=" + (if(rawAppId=="dummy") "FALTA" else "OK")
             }
         }
     }

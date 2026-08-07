@@ -243,7 +243,8 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
         viewModelScope.launch {
             _isSyncing.value = true
             if (!com.example.data.FirebaseService.isFirebaseConfigured()) {
-                _syncMessage.emit("Aviso: Nuvem não configurada. Nenhum produto baixado.")
+                val msg = com.example.data.FirebaseService.lastError ?: "Configuração ausente."
+                _syncMessage.emit("Nuvem não configurada: $msg")
                 _isSyncing.value = false
                 return@launch
             }
@@ -260,7 +261,8 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
             _isSyncing.value = true
             try {
                 if (!com.example.data.FirebaseService.isFirebaseConfigured()) {
-                    _syncMessage.emit("Aviso: Nuvem não configurada. Impossível sincronizar.")
+                    val msg = com.example.data.FirebaseService.lastError ?: "Configuração ausente."
+                    _syncMessage.emit("Nuvem não configurada: $msg")
                     _isSyncing.value = false
                     return@launch
                 }
