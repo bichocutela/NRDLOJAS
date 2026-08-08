@@ -60,12 +60,18 @@ jobs:
         name: app-release
         path: app/build/outputs/apk/release/app-release.apk
 
+    - name: Get app version
+      id: app_version
+      run: |
+        VERSION=$(grep 'versionName = ' app/build.gradle.kts | head -1 | sed 's/.*versionName = "\([^"]*\)".*/\1/')
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
     - name: Create GitHub Release
       if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: v1.0.${{ github.run_number }}
-        name: Release v1.0.${{ github.run_number }}
+        tag_name: v${{ steps.app_version.outputs.version }}
+        name: Release v${{ steps.app_version.outputs.version }}
         files: app/build/outputs/apk/release/app-release.apk
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

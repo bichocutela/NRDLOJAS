@@ -48,7 +48,7 @@ fun AboutScreen(onNavigateBack: () -> Unit) {
                 .padding(16.dp)
         ) {
             Text(
-                text = "Sobre o Aplicativo\n\nEste aplicativo foi desenvolvido por Alessandro P., Operador de Caixa, com o objetivo de auxiliar os colaboradores da Frente de Loja na consulta rápida de códigos correlatos, contribuindo para mais agilidade, precisão e eficiência no atendimento aos clientes.\n\nEste projeto nasceu da vivência diária na operação de caixa e da necessidade de tornar a rotina de trabalho mais prática, oferecendo uma ferramenta de apoio aos profissionais da equipe.\n\nRegistro meu sincero agradecimento aos Fiscais de Caixa, pela confiança, incentivo e apoio durante o desenvolvimento desta iniciativa, bem como aos colegas de trabalho, que compartilharam sugestões, experiências e conhecimentos que contribuíram para o aprimoramento do aplicativo.\n\nEste aplicativo foi desenvolvido exclusivamente como uma ferramenta de apoio operacional interno e não substitui os procedimentos, normas, orientações ou sistemas oficiais da empresa.\n\nTodas as marcas, nomes, logotipos, códigos, informações e demais conteúdos relacionados ao Supermercado Nordestão pertencem aos seus respectivos proprietários. Todos os direitos são reservados à empresa. O desenvolvedor não reivindica qualquer direito de propriedade sobre essas informações, utilizando-as unicamente para fins de apoio às atividades internas dos colaboradores.\n\n© 2026 Alessandro P. Todos os direitos do aplicativo são reservados ao autor. O conteúdo institucional e as informações pertencentes ao Supermercado Nordestão permanecem de propriedade exclusiva da empresa.\n\nVersão: 1.0\nDesenvolvedor: Alessandro Paulo\n@bichocutela @haydendanex",
+                text = "Sobre o Aplicativo\n\nEste aplicativo foi desenvolvido por Alessandro P., Operador de Caixa, com o objetivo de auxiliar os colaboradores da Frente de Loja na consulta rápida de códigos correlatos, contribuindo para mais agilidade, precisão e eficiência no atendimento aos clientes.\n\nEste projeto nasceu da vivência diária na operação de caixa e da necessidade de tornar a rotina de trabalho mais prática, oferecendo uma ferramenta de apoio aos profissionais da equipe.\n\nRegistro meu sincero agradecimento aos Fiscais de Caixa, pela confiança, incentivo e apoio durante o desenvolvimento desta iniciativa, bem como aos colegas de trabalho, que compartilharam sugestões, experiências e conhecimentos que contribuíram para o aprimoramento do aplicativo.\n\nEste aplicativo foi desenvolvido exclusivamente como uma ferramenta de apoio operacional interno e não substitui os procedimentos, normas, orientações ou sistemas oficiais da empresa.\n\nTodas as marcas, nomes, logotipos, códigos, informações e demais conteúdos relacionados ao Supermercado Nordestão pertencem aos seus respectivos proprietários. Todos os direitos são reservados à empresa. O desenvolvedor não reivindica qualquer direito de propriedade sobre essas informações, utilizando-as unicamente para fins de apoio às atividades internas dos colaboradores.\n\n© 2026 Alessandro P. Todos os direitos do aplicativo são reservados ao autor. O conteúdo institucional e as informações pertencentes ao Supermercado Nordestão permanecem de propriedade exclusiva da empresa.\n\nVersão: ${com.example.BuildConfig.VERSION_NAME}\nDesenvolvedor: Alessandro Paulo\n@bichocutela @haydendanex",
                 style = MaterialTheme.typography.bodyMedium
             )
 
@@ -120,13 +120,27 @@ fun AboutScreen(onNavigateBack: () -> Unit) {
                         isChecking = false
                         if (release != null) {
                             val (tag, url) = release
-                            val currentVersion = try {
-                                context.packageManager.getPackageInfo(context.packageName, 0).versionName
-                            } catch (e: Exception) {
-                                "1.0"
+                            val currentVersion = com.example.BuildConfig.VERSION_NAME
+                            
+                            // Numeric version check
+                            val remoteTag = tag.removePrefix("v")
+                            val currentParts = currentVersion.split(".").map { it.toIntOrNull() ?: 0 }
+                            val remoteParts = remoteTag.split(".").map { it.toIntOrNull() ?: 0 }
+                            
+                            var isNewer = false
+                            val maxLength = maxOf(currentParts.size, remoteParts.size)
+                            for (i in 0 until maxLength) {
+                                val c = currentParts.getOrElse(i) { 0 }
+                                val r = remoteParts.getOrElse(i) { 0 }
+                                if (r > c) {
+                                    isNewer = true
+                                    break
+                                } else if (r < c) {
+                                    break
+                                }
                             }
-                            // Simplified version check
-                            if (tag.removePrefix("v") != currentVersion) {
+                            
+                            if (isNewer) {
                                 updateTag = tag
                                 updateUrl = url
                                 showUpdateDialog = true
