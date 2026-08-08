@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -226,7 +227,7 @@ val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(i
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(180.dp) // Adjust height as needed for immersion
+                .aspectRatio(1536f / 630f)
         ) {
             Box(
                 modifier = Modifier.fillMaxSize()
@@ -244,7 +245,7 @@ val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(i
                     coil.compose.AsyncImage(
                         model = localBannerUrl,
                         contentDescription = "Banner Nordestão (Local)",
-                        contentScale = ContentScale.Crop,
+                        contentScale = ContentScale.FillWidth,
                         modifier = Modifier.fillMaxSize(),
                         onError = { state ->
                             localBannerFailed = true
@@ -255,7 +256,7 @@ val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(i
                     coil.compose.AsyncImage(
                         model = remoteBannerUrl,
                         contentDescription = "Banner Nordestão",
-                        contentScale = ContentScale.Crop,
+                        contentScale = ContentScale.FillWidth,
                         modifier = Modifier.fillMaxSize(),
                         onError = { state ->
                             useLocalBanner = true
