@@ -1,3 +1,56 @@
-            Product(code = "255351", name = "Brioche de Creme", searchName = "bri creme pao doce", category = "Padaria", unit = "un", searchCount = 0, imageUrl = "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=150&q=80"),
-            Product(code = "255351-E", name = "Brioche Especial", searchName = "bri especial pao doce", category = "Padaria", unit = "un", searchCount = 0, imageUrl = "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=150&q=80"),
-            Product(code = "255351-L", name = "Brioche Leite Pó", searchName = "bri leite po pao doce", category = "Padaria", unit = "un", searchCount = 0, imageUrl = "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=150&q=80"),
+140,183c140,147
+<     fun initialize(context: android.content.Context) {
+<         try {
+<             FirebaseApp.getInstance()
+<             try {
+<                 val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+<                 if (auth.currentUser == null) {
+<                     auth.signInAnonymously()
+<                 }
+<             } catch (e: Exception) {
+<             }
+<         } catch (e: Exception) {
+<             val rawApiKey = com.example.BuildConfig.FIREBASE_API_KEY
+<             val rawProjectId = com.example.BuildConfig.FIREBASE_PROJECT_ID
+<             val rawAppId = com.example.BuildConfig.FIREBASE_APP_ID
+<                         
+<             if (rawApiKey != "dummy" && rawProjectId != "dummy" && rawAppId != "dummy") {
+<                 // Corrigir possível inversão de Project ID e App ID no painel de secrets
+<                 val apiKey = rawApiKey
+<                 val appId = if (rawProjectId.contains(":") && !rawAppId.contains(":")) rawProjectId else rawAppId
+<                 val projectId = if (rawProjectId.contains(":") && !rawAppId.contains(":")) rawAppId else rawProjectId
+<                 
+<                 try {
+<                     val options = com.google.firebase.FirebaseOptions.Builder()
+<                         .setApiKey(apiKey)
+<                         .setProjectId(projectId)
+<                         .setApplicationId(appId)
+<                         .setStorageBucket(projectId + ".appspot.com")
+<                         .build()
+<                     FirebaseApp.initializeApp(context, options)
+<                     
+<                     try {
+<                         com.google.firebase.auth.FirebaseAuth.getInstance().signInAnonymously()
+<                     } catch (e: Exception) {
+<                         Log.e("FirebaseService", "Auth error", e)
+<                     }
+<                 } catch (ex: Exception) {
+<                     lastError = "Init error: " + ex.message
+<                     Log.e("FirebaseService", "Erro ao inicializar Firebase", ex)
+<                 }
+<             } else {
+<                 lastError = "API_KEY=" + (if(rawApiKey=="dummy") "FALTA" else "OK") + ", PROJ=" + (if(rawProjectId=="dummy") "FALTA" else "OK") + ", APP=" + (if(rawAppId=="dummy") "FALTA" else "OK")
+<             }
+<         }
+<     }
+---
+>     fun initialize(context: android.content.Context) {
+>         try {
+>             val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+>             if (auth.currentUser == null) {
+>                 auth.signInAnonymously()
+>             }
+>         } catch (e: Exception) {
+>             Log.e("FirebaseService", "Auth error", e)
+>         }
+>     }
