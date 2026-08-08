@@ -36,8 +36,46 @@ fun AppNavGraph(viewModel: MainViewModel) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val sharedPref = remember { context.getSharedPreferences("admin_prefs", Context.MODE_PRIVATE) }
-    var isLoggedIn by remember { mutableStateOf(sharedPref.getBoolean("is_logged_in", false)) }
-    var userRole by remember { mutableStateOf(sharedPref.getString("user_role", "admin") ?: "admin") }
+    val currentUser = remember { FirebaseAuth.getInstance().currentUser }
+    var isLoggedIn by remember { 
+        mutableStateOf(sharedPref.getBoolean("is_logged_in", false) || currentUser != null) 
+    }
+    var userRole by remember { 
+        mutableStateOf(
+            if (currentUser != null) {
+                val email = currentUser.email ?: ""
+                when (email) {
+                    "mestre@nrdlojas.com" -> "mestre"
+                    "admin@nrdlojas.com" -> "admin"
+                    else -> sharedPref.getString("user_role", "admin") ?: "admin"
+                }
+            } else {
+                sharedPref.getString("user_role", "admin") ?: "admin"
+            }
+        )
+    }
+
+    LaunchedEffect(isLoggedIn, userRole) {
+        if (isLoggedIn) {
+            sharedPref.edit()
+                .putBoolean("is_logged_in", true)
+                .putString("user_role", userRole)
+                .apply()
+        }
+    }
+    
+    LaunchedEffect(Unit) {
+        val currentUserNow = FirebaseAuth.getInstance().currentUser
+        if (currentUserNow != null) {
+            val email = currentUserNow.email ?: ""
+            android.util.Log.d("LoginDebug", "Inicializando com currentUser: $email")
+            if (email == "mestre@nrdlojas.com") {
+                navController.navigate("mestre")
+            } else if (email == "admin@nrdlojas.com") {
+                navController.navigate("admin")
+            }
+        }
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -168,6 +206,7 @@ fun LoginDrawerContent(
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var loginStatus by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
     val categories by viewModel.productsCountByCategory.collectAsState()
     var expandedCategory by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -204,28 +243,43 @@ fun LoginDrawerContent(
             Spacer(modifier = Modifier.height(24.dp))
             Button(
                 onClick = {
-                    val email = if (username == "mestre") "mestre@nrdlojas.com"
-                        else if (username == "admin") "admin@nrdlojas.com"
-                        else if (!username.contains("@")) "${username}@nrdlojas.com" 
-                        else username
+                    if (isLoading) return@Button
+                    val inputUser = username.trim()
+                    android.util.Log.d("LoginDebug", "Botão Entrar clicado. Usuário recebido: $inputUser")
+                    val email = if (inputUser == "mestre") "mestre@nrdlojas.com"
+                        else if (inputUser == "admin") "admin@nrdlojas.com"
+                        else if (!inputUser.contains("@")) "${inputUser}@nrdlojas.com" 
+                        else inputUser
+                    android.util.Log.d("LoginDebug", "E-mail normalizado: $email")
                     
                     scope.launch {
+                        isLoading = true
                         loginStatus = "Autenticando..."
-                        val result = viewModel.authRepository.login(email, password)
-                        if (result is com.example.data.AuthResult.Success) {
-                            loginStatus = null
-                            val role = if (email == "mestre@nrdlojas.com") "mestre"
-                                       else if (email == "admin@nrdlojas.com") "admin"
-                                       else "usuario"
-                            onLoginSuccess(role)
-                        } else {
-                            loginStatus = "Falha no login. Verifique no Firebase."
+                        try {
+                            val result = viewModel.authRepository.login(email, password)
+                            if (result is com.example.data.AuthResult.Success) {
+                                loginStatus = null
+                                val role = if (result.email == "mestre@nrdlojas.com") "mestre"
+                                           else if (result.email == "admin@nrdlojas.com") "admin"
+                                           else "usuario"
+                                android.util.Log.d("LoginDebug", "Login sucesso na UI. Role: $role. Navegando...")
+                                onLoginSuccess(role)
+                            } else if (result is com.example.data.AuthResult.Error) {
+                                android.util.Log.e("LoginDebug", "Falha no login: ${result.message}")
+                                loginStatus = result.message
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("LoginDebug", "Exceção não tratada na UI: ${e.message}")
+                            loginStatus = "Erro inesperado: ${e.message}"
+                        } finally {
+                            isLoading = false
                         }
                     }
                 },
+                enabled = !isLoading,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Entrar")
+                Text(if (isLoading) "Autenticando..." else "Entrar")
             }
             if (loginStatus != null) {
                 Spacer(modifier = Modifier.height(16.dp))
