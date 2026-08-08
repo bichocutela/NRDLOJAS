@@ -172,19 +172,9 @@ fun MestreScreen(
                                     val url = com.example.data.FirebaseService.uploadBanner(selectedUri!!)
                                     if (url != null) {
                                         com.example.util.NotificationHelper.showToast(context, "Fundo alterado com sucesso para todos!", android.widget.Toast.LENGTH_SHORT)
-                                        viewModel.userPreferences.setBannerImageUri(url)
                                     } else {
                                         val error = com.example.data.FirebaseService.lastError ?: "Firebase offline ou erro desconhecido"
                                         com.example.util.NotificationHelper.showToast(context, "Erro: $error", android.widget.Toast.LENGTH_LONG)
-                                        // Fallback para local apenas
-                                        val inputStream = context.contentResolver.openInputStream(selectedUri!!)
-                                        val file = java.io.File(context.filesDir, "custom_hero_banner.jpg")
-                                        val outputStream = java.io.FileOutputStream(file)
-                                        inputStream?.copyTo(outputStream)
-                                        inputStream?.close()
-                                        outputStream.close()
-                                        viewModel.userPreferences.setBannerImageUri(file.absolutePath)
-                                        com.example.util.NotificationHelper.showToast(context, "Fundo alterado (apenas local)", android.widget.Toast.LENGTH_SHORT)
                                     }
                                 } catch (e: Exception) {
                                     com.example.util.NotificationHelper.showToast(context, "Erro exception: ${e.message}", android.widget.Toast.LENGTH_LONG)
