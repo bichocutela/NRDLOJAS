@@ -156,20 +156,8 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
     
 val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(initialValue = "red")
     
-    val bannerModel = remember(appTheme, bannerImageUri) {
-        val supabaseUrl = com.example.BuildConfig.SUPABASE_URL
-        if (appTheme != "red") {
-            "$supabaseUrl/storage/v1/object/public/nrdlojas-images/banners/themes/theme_${appTheme}.jpg"
-        } else {
-            if (bannerImageUri != null && bannerImageUri!!.startsWith("data:image")) {
-                val base64 = bannerImageUri!!.substringAfter("base64,")
-                android.util.Base64.decode(base64, android.util.Base64.DEFAULT)
-            } else if (bannerImageUri != null && bannerImageUri!!.isNotEmpty()) {
-                bannerImageUri
-            } else {
-                null
-            }
-        }
+    val bannerModel = remember(appTheme) {
+        "${com.example.BuildConfig.SUPABASE_URL}/storage/v1/object/public/nrdlojas-images/banners/themes/theme_${appTheme}.jpg"
     }
 
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
@@ -241,10 +229,18 @@ val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(i
                 modifier = Modifier.fillMaxSize()
             ) {
                 coil.compose.AsyncImage(
-                    model = bannerModel ?: R.drawable.hero_banner,
+                    model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                        .data(bannerModel)
+                        .error(R.drawable.hero_banner)
+                        .fallback(R.drawable.hero_banner)
+                        .placeholder(R.drawable.hero_banner)
+                        .build(),
                     contentDescription = "Banner Nordestão",
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    onError = { state ->
+                        android.util.Log.e("BannerError", "Falha ao carregar o banner: $bannerModel, erro: ${state.result.throwable.message}")
+                    }
                 )
                 Text(
                     text = "NRD Códigos Correlatos",
