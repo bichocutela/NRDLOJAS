@@ -64,8 +64,8 @@ jobs:
             remote_path = f"banners/themes/{image_name}"
             
             if not os.path.exists(image_path):
-                print(f"Warning: {image_path} not found in repository. Skipping.")
-                continue
+                print(f"ERROR: {image_path} not found.")
+                raise SystemExit(1)
                 
             print(f"Uploading {image_name}...")
             with open(image_path, "rb") as f:
@@ -83,14 +83,14 @@ jobs:
                 }
                 res_upload = requests.post(upload_url, headers=headers, files=files, data=data)
                 
-                try:
-                    res_upload.raise_for_status()
-                    public_url = res_upload.json().get('url')
-                    print(f"Success: {theme.capitalize()} theme uploaded.")
-                    print(f"Public URL: {public_url}")
-                except Exception as e:
-                    print(f"Error uploading {theme} theme: {e}")
+                res_upload.raise_for_status()
+                public_url = res_upload.json().get('url')
+                if not public_url:
+                    print(f"ERROR: No public URL returned for {theme} theme.")
                     print(res_upload.text)
+                    raise SystemExit(1)
+                print(f"Success: {theme.capitalize()} theme uploaded.")
+                print(f"Public URL: {public_url}")
 
         print("Finished uploading theme banners.")
         PY_EOF
