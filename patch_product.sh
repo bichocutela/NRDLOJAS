@@ -1,1 +1,0 @@
-sed -i 's/.clickable { viewModel.onProductSearched(product) }/.clickable { triggerVibration(); viewModel.onProductSearched(product); showDialog = true }/g' app/src/main/java/com/example/ui/SearchScreen.kt

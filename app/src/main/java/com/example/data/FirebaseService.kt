@@ -69,6 +69,10 @@ object FirebaseService {
                 }
                 batch.commit().await()
             }
+            if (products.isNotEmpty()) {
+                val latest = products.maxByOrNull { it.id }
+                if (latest != null) publishLatestProduct(latest)
+            }
         } catch (e: Exception) {
             Log.e("FirebaseService", "Error in syncAllProducts", e)
         }
@@ -264,6 +268,73 @@ object FirebaseService {
                 }
             }
             
+        awaitClose { registration.remove() }
+    }
+
+
+    suspend fun syncAllDynamicTabs(tabs: List<com.example.data.DynamicTab>) {
+        if (!isFirebaseConfigured()) return
+        try {
+            val firestore = FirebaseFirestore.getInstance()
+            val batch = firestore.batch()
+            tabs.forEach { tab ->
+                val docRef = firestore.collection("dynamic_tabs").document(tab.id.toString())
+                batch.set(docRef, mapOf(
+                    "id" to tab.id,
+                    "title" to tab.title,
+                    "type" to tab.type,
+                    "content" to tab.content,
+                    "displayOrder" to tab.displayOrder
+                ))
+            }
+            batch.commit().await()
+        } catch (e: Exception) {
+            Log.e("FirebaseService", "Error syncing dynamic tabs", e)
+        }
+    }
+
+    suspend fun deleteDynamicTab(tab: com.example.data.DynamicTab) {
+        if (!isFirebaseConfigured()) return
+        try {
+            val firestore = FirebaseFirestore.getInstance()
+            firestore.collection("dynamic_tabs").document(tab.id.toString())
+                .delete().await()
+        } catch (e: Exception) {
+            Log.e("FirebaseService", "Error deleting dynamic tab", e)
+        }
+    }
+
+    fun observeDynamicTabs(): Flow<List<com.example.data.DynamicTab>> = callbackFlow {
+        if (!isFirebaseConfigured()) {
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+        val firestore = FirebaseFirestore.getInstance()
+        val registration = firestore.collection("dynamic_tabs")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val tabs = snapshot.documents.mapNotNull { doc ->
+                        val id = doc.getLong("id")?.toInt() ?: return@mapNotNull null
+                        val title = doc.getString("title") ?: ""
+                        val type = doc.getString("type") ?: ""
+                        val content = doc.getString("content") ?: ""
+                        val displayOrder = doc.getLong("displayOrder")?.toInt() ?: 0
+                        com.example.data.DynamicTab(
+                            id = id,
+                            title = title,
+                            type = type,
+                            content = content,
+                            displayOrder = displayOrder
+                        )
+                    }
+                    trySend(tabs)
+                }
+            }
         awaitClose { registration.remove() }
     }
 }

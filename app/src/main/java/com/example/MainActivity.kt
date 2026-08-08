@@ -114,10 +114,11 @@ class MainActivity : ComponentActivity() {
             val fontScale by userPreferences.fontScale.collectAsState(initial = 1.0f)
             val latestFirebase by viewModel.latestProduct.collectAsState(null)
             val latestLocal by viewModel.latestProductLocal.collectAsState(null)
-            val lastNotifiedCode by userPreferences.lastNotifiedProductCode.collectAsState(null)
+            val lastNotifiedCode by userPreferences.lastNotifiedProductCode.collectAsState("___LOADING___")
             val context = androidx.compose.ui.platform.LocalContext.current
             
             LaunchedEffect(latestFirebase, latestLocal, lastNotifiedCode) {
+                if (lastNotifiedCode == "___LOADING___") return@LaunchedEffect
                 val dispName = latestFirebase?.get("name")?.toString() ?: latestLocal?.name
                 val dispCode = latestFirebase?.get("code")?.toString() ?: latestLocal?.code
                 if (dispName != null && dispCode != null && dispCode != lastNotifiedCode) {

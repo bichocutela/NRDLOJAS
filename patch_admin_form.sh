@@ -1,3 +1,0 @@
-sed -i '315a \                        Spacer(modifier = Modifier.height(8.dp))\n                        OutlinedTextField(\n                            value = productImageUrl,\n                            onValueChange = { productImageUrl = it },\n                            label = { Text("URL da Imagem (Google Drive, etc)") },\n                            modifier = Modifier.fillMaxWidth()\n                        )' app/src/main/java/com/example/ui/AdminScreen.kt
-
-sed -i 's/unit = "un"/unit = "un",\n                                        imageUrl = productImageUrl.ifBlank { null }/g' app/src/main/java/com/example/ui/AdminScreen.kt

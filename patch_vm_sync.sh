@@ -1,1 +1,0 @@
-sed -i 's/_syncMessage.emit("Aviso: Nuvem não configurada. Impossível sincronizar.")/_syncMessage.emit("Aviso: Nuvem não configurada. Impossível sincronizar.")\n                    _isSyncing.value = false\n                    return@launch/g' app/src/main/java/com/example/ui/MainViewModel.kt

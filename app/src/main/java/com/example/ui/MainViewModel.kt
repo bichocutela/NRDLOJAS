@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class MainViewModel(private val repository: ProductRepository, val userPreferences: UserPreferences) : ViewModel() {
@@ -29,6 +30,22 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
     private val _latestProduct = MutableStateFlow<Map<String, Any>?>(null)
     val latestProduct = _latestProduct.asStateFlow()
     init {
+        viewModelScope.launch {
+            com.example.data.FirebaseService.observeDynamicTabs().collect { remoteTabs ->
+                val localTabs = repository.getAllTabs().first()
+                remoteTabs.forEach { remoteTab ->
+                    val localTab = localTabs.find { it.id == remoteTab.id }
+                    if (localTab != remoteTab) {
+                        repository.insertTab(remoteTab)
+                    }
+                }
+                val remoteIds = remoteTabs.map { it.id }.toSet()
+                val tabsToDelete = localTabs.filter { it.id !in remoteIds }
+                if (tabsToDelete.isNotEmpty() && !isSyncingTabs) {
+                    tabsToDelete.forEach { repository.deleteTab(it) }
+                }
+            }
+        }
         viewModelScope.launch {
             com.example.data.FirebaseService.observeBannerUrl().collect { url ->
                 if (url != null) {
@@ -288,9 +305,33 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
     val dynamicTabs: kotlinx.coroutines.flow.StateFlow<List<com.example.data.DynamicTab>> = repository.getAllTabs()
         .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun insertTab(tab: com.example.data.DynamicTab) = viewModelScope.launch { repository.insertTab(tab) }
-    fun updateTab(tab: com.example.data.DynamicTab) = viewModelScope.launch { repository.updateTab(tab) }
-    fun deleteTab(tab: com.example.data.DynamicTab) = viewModelScope.launch { repository.deleteTab(tab) }
+
+    private var isSyncingTabs = false
+
+    fun insertTab(tab: com.example.data.DynamicTab) = viewModelScope.launch {
+        isSyncingTabs = true
+        val existingIds = repository.getAllTabs().first().map { it.id }.toSet()
+        repository.insertTab(tab)
+        val tabs = repository.getAllTabs().first { list -> list.any { it.id !in existingIds } }
+        com.example.data.FirebaseService.syncAllDynamicTabs(tabs)
+        isSyncingTabs = false
+    }
+
+    fun updateTab(tab: com.example.data.DynamicTab) = viewModelScope.launch {
+        isSyncingTabs = true
+        repository.updateTab(tab)
+        val tabs = repository.getAllTabs().first { list -> list.any { it == tab } }
+        com.example.data.FirebaseService.syncAllDynamicTabs(tabs)
+        isSyncingTabs = false
+    }
+
+    fun deleteTab(tab: com.example.data.DynamicTab) = viewModelScope.launch {
+        isSyncingTabs = true
+        repository.deleteTab(tab)
+        com.example.data.FirebaseService.deleteDynamicTab(tab)
+        isSyncingTabs = false
+    }
+
 
     fun setOnboardingShown() {
         viewModelScope.launch {

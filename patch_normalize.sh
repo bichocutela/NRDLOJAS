@@ -1,3 +1,0 @@
-sed -i 's/val url = com.example.data.FirebaseService.setBannerUrlDirectly(bannerUrlInput)/val url = com.example.data.FirebaseService.setBannerUrlDirectly(com.example.util.ImageUrlHelper.normalizeUrl(bannerUrlInput))/g' app/src/main/java/com/example/ui/MestreScreen.kt
-sed -i 's/imageUrl = productImageUrl.ifBlank { null }/imageUrl = productImageUrl.ifBlank { null }?.let { com.example.util.ImageUrlHelper.normalizeUrl(it) }/g' app/src/main/java/com/example/ui/AdminScreen.kt
-sed -i 's/imageUrl = editImageUrl.ifBlank { null }/imageUrl = editImageUrl.ifBlank { null }?.let { com.example.util.ImageUrlHelper.normalizeUrl(it) }/g' app/src/main/java/com/example/ui/AdminScreen.kt
