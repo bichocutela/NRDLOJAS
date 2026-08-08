@@ -3,11 +3,11 @@ name: Upload Theme Banners
 on:
   push:
     paths:
-      - 'app/src/main/res/drawable-nodpi/theme_red.jpg'
-      - 'app/src/main/res/drawable-nodpi/theme_gold.jpg'
-      - 'app/src/main/res/drawable-nodpi/theme_green.jpg'
-      - 'app/src/main/res/drawable-nodpi/theme_blue.jpg'
-      - 'app/src/main/res/drawable-nodpi/theme_orange.jpg'
+      - 'app/src/main/assets/themes/theme_red.jpg'
+      - 'app/src/main/assets/themes/theme_gold.jpg'
+      - 'app/src/main/assets/themes/theme_green.jpg'
+      - 'app/src/main/assets/themes/theme_blue.jpg'
+      - 'app/src/main/assets/themes/theme_orange.jpg'
   workflow_dispatch:
 
 jobs:
@@ -60,7 +60,7 @@ jobs:
         
         for theme in themes:
             image_name = f"theme_{theme}.jpg"
-            image_path = f"app/src/main/res/drawable-nodpi/{image_name}"
+            image_path = f"app/src/main/assets/themes/{image_name}"
             remote_path = f"banners/themes/{image_name}"
             
             if not os.path.exists(image_path):
