@@ -40,6 +40,10 @@ class UserPreferences(private val context: Context) {
     }
     val lastNotifiedProductCode: Flow<String?> = context.dataStore.data.map { it[LAST_NOTIFIED_PRODUCT_CODE] }
     
+    val appTheme: Flow<String> = context.dataStore.data.map { preferences ->
+        preferences[APP_THEME] ?: "red"
+    }
+
     val onboardingShown: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[ONBOARDING_SHOWN] ?: false
     }
@@ -72,6 +76,10 @@ class UserPreferences(private val context: Context) {
         context.dataStore.edit { it[LAST_NOTIFIED_PRODUCT_CODE] = code }
     }
 
+    suspend fun setAppTheme(theme: String) {
+        context.dataStore.edit { it[APP_THEME] = theme }
+    }
+
     suspend fun setOnboardingShown(shown: Boolean) {
         context.dataStore.edit { it[ONBOARDING_SHOWN] = shown }
     }
@@ -86,6 +94,7 @@ class UserPreferences(private val context: Context) {
         val FONT_SCALE = floatPreferencesKey("font_scale")
         val BANNER_IMAGE_URI = stringPreferencesKey("banner_image_uri")
         val LAST_NOTIFIED_PRODUCT_CODE = stringPreferencesKey("last_notified_product_code")
+        val APP_THEME = stringPreferencesKey("app_theme")
         val ONBOARDING_SHOWN = booleanPreferencesKey("onboarding_shown")
     }
 }

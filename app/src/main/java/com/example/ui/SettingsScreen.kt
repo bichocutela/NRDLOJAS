@@ -92,6 +92,50 @@ fun SettingsScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
             
             HorizontalDivider()
             
+            
+            Text("Tema do Aplicativo", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            
+            val appTheme by viewModel.userPreferences.appTheme.collectAsState(initial = "red")
+            var expandedThemeMenu by remember { mutableStateOf(false) }
+            val themeOptions = listOf(
+                "red" to "Vermelho (Padrão)",
+                "gold" to "Dourado",
+                "green" to "Verde",
+                "blue" to "Azul",
+                "orange" to "Laranja"
+            )
+            
+            ExposedDropdownMenuBox(
+                expanded = expandedThemeMenu,
+                onExpandedChange = { expandedThemeMenu = !expandedThemeMenu }
+            ) {
+                OutlinedTextField(
+                    value = themeOptions.find { it.first == appTheme }?.second ?: "Vermelho (Padrão)",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Selecione o Tema") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedThemeMenu) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+                )
+                ExposedDropdownMenu(
+                    expanded = expandedThemeMenu,
+                    onDismissRequest = { expandedThemeMenu = false }
+                ) {
+                    themeOptions.forEach { (themeKey, themeLabel) ->
+                        DropdownMenuItem(
+                            text = { Text(themeLabel) },
+                            onClick = {
+                                coroutineScope.launch { viewModel.userPreferences.setAppTheme(themeKey) }
+                                expandedThemeMenu = false
+                            }
+                        )
+                    }
+                }
+            }
+            
+            HorizontalDivider()
+
             Text("Vibração", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
             
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {

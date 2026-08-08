@@ -1,4 +1,9 @@
-package com.example.ui.theme
+import re
+
+with open("app/src/main/java/com/example/ui/theme/Theme.kt", "r") as f:
+    content = f.read()
+
+replacement = """package com.example.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -66,3 +71,8 @@ fun MyApplicationTheme(
     val colorScheme = getThemeColorScheme(appTheme)
     MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
 }
+"""
+
+with open("app/src/main/java/com/example/ui/theme/Theme.kt", "w") as f:
+    f.write(replacement)
+print("Patched Theme.kt")

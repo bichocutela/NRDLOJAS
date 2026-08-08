@@ -154,17 +154,24 @@ fun StylizedText(
 fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
     val bannerImageUri by viewModel.userPreferences.bannerImageUri.collectAsState(initial = null)
     
-    val bannerModel = remember(bannerImageUri) {
-        if (bannerImageUri != null && bannerImageUri!!.startsWith("data:image")) {
-            val base64 = bannerImageUri!!.substringAfter("base64,")
-            android.util.Base64.decode(base64, android.util.Base64.DEFAULT)
-        } else if (bannerImageUri != null && bannerImageUri!!.isNotEmpty()) {
-            bannerImageUri
+val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(initialValue = "red")
+    
+    val bannerModel = remember(appTheme, bannerImageUri) {
+        val supabaseUrl = com.example.BuildConfig.SUPABASE_URL
+        if (appTheme != "red") {
+            "$supabaseUrl/storage/v1/object/public/nrdlojas-images/banners/themes/theme_${appTheme}.jpg"
         } else {
-            null
+            if (bannerImageUri != null && bannerImageUri!!.startsWith("data:image")) {
+                val base64 = bannerImageUri!!.substringAfter("base64,")
+                android.util.Base64.decode(base64, android.util.Base64.DEFAULT)
+            } else if (bannerImageUri != null && bannerImageUri!!.isNotEmpty()) {
+                bannerImageUri
+            } else {
+                null
+            }
         }
     }
-    
+
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
     val mostUsed by viewModel.mostUsed.collectAsStateWithLifecycle()
@@ -242,7 +249,7 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
                 Text(
                     text = "NRD Códigos Correlatos",
                     style = MaterialTheme.typography.titleMedium,
-                    color = Color(0xFFE31B23), // Red color
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
