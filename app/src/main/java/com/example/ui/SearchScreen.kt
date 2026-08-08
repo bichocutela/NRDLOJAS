@@ -228,20 +228,36 @@ val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(i
             Box(
                 modifier = Modifier.fillMaxSize()
             ) {
-                coil.compose.AsyncImage(
-                    model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
-                        .data(bannerModel)
-                        .error(R.drawable.hero_banner)
-                        .fallback(R.drawable.hero_banner)
-                        .placeholder(R.drawable.hero_banner)
-                        .build(),
-                    contentDescription = "Banner Nordestão",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                    onError = { state ->
-                        android.util.Log.e("BannerError", "Falha ao carregar o banner: $bannerModel, erro: ${state.result.throwable.message}")
+                var bannerFailed by remember(appTheme) { mutableStateOf(false) }
+                val localBannerRes = remember(appTheme) {
+                    when (appTheme) {
+                        "gold" -> com.example.R.drawable.theme_gold
+                        "green" -> com.example.R.drawable.theme_green
+                        "blue" -> com.example.R.drawable.theme_blue
+                        "orange" -> com.example.R.drawable.theme_orange
+                        else -> com.example.R.drawable.theme_red
                     }
-                )
+                }
+                
+                if (bannerFailed) {
+                    Image(
+                        painter = androidx.compose.ui.res.painterResource(id = localBannerRes),
+                        contentDescription = "Banner padrão",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    coil.compose.AsyncImage(
+                        model = bannerModel,
+                        contentDescription = "Banner Nordestão",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                        onError = { state ->
+                            bannerFailed = true
+                            android.util.Log.e("BannerError", "Falha ao carregar o banner: $bannerModel, erro: ${state.result.throwable.message}")
+                        }
+                    )
+                }
                 Text(
                     text = "NRD Códigos Correlatos",
                     style = MaterialTheme.typography.titleMedium,
