@@ -1,49 +1,11 @@
-name: Android CI
+import sys
 
-on:
-  push:
-    branches: [ "main", "master" ]
-  workflow_dispatch:
+with open(".github/workflows/main.yml", "r") as f:
+    content = f.read()
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: gradle
-
-    - name: Generate Debug Keystore (if missing)
-      run: |
-        if [ ! -f "debug.keystore" ]; then
-          keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "C=US, O=Android, CN=Android Debug"
-        fi
-
-    - name: Fix Corrupt Gradle Wrapper Jar
-      run: |
-        rm -f gradle/wrapper/gradle-wrapper.jar
-        curl -fsSL -o gradle/wrapper/gradle-wrapper.jar "https://raw.githubusercontent.com/gradle/gradle/v9.3.1/gradle/wrapper/gradle-wrapper.jar"
-
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-
-    - name: Create google-services.json
-      env:
-        GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-      run: |
-        mkdir -p app
-        printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
-        test -s app/google-services.json
-
-    - name: Decode Release Keystore
+index = content.find("    - name: Decode Release Keystore")
+if index != -1:
+    content = content[:index] + """    - name: Decode Release Keystore
       run: |
         echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > release.keystore
 
@@ -89,3 +51,9 @@ jobs:
         files: app/build/outputs/apk/release/app-release.apk
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+"""
+    with open(".github/workflows/main.yml", "w") as f:
+        f.write(content)
+    print("Patched .github/workflows/main.yml successfully.")
+else:
+    print("Target not found in main.yml.")

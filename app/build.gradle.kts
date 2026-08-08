@@ -16,9 +16,8 @@ android {
     applicationId = "com.aistudio.codigomercado.xzbkql"
     minSdk = 24
     targetSdk = 36
-    val runNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
-    versionCode = 59
-    versionName = "1.0.59"
+    versionCode = System.getenv("APP_VERSION_CODE")?.toIntOrNull() ?: 59
+    versionName = System.getenv("APP_VERSION_NAME") ?: "1.0.59"
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SUPABASE_URL", "\"${System.getenv("SUPABASE_URL") ?: ""}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${System.getenv("SUPABASE_ANON_KEY") ?: ""}\"")
