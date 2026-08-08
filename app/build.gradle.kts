@@ -17,8 +17,8 @@ android {
     minSdk = 24
     targetSdk = 36
     val runNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
-    versionCode = runNumber
-    versionName = "1.0.$runNumber"
+    versionCode = 59
+    versionName = "1.0.59"
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
   signingConfigs {

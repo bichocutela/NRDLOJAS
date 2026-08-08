@@ -204,26 +204,22 @@ fun LoginDrawerContent(
             Spacer(modifier = Modifier.height(24.dp))
             Button(
                 onClick = {
-                    if (username == "mestre" && password == "nrdlojas") {
-                        loginStatus = null
-                        onLoginSuccess("mestre")
-                    } else if (username == "admin" && password == "nrdlojas") {
-                        loginStatus = null
-                        onLoginSuccess("admin")
-                    } else {
-                        // Firebase Auth
-                        val email = if (!username.contains("@")) "${username}@nrdlojas.com" else username
-                        scope.launch {
-                            loginStatus = "Autenticando..."
-                            val result = viewModel.authRepository.login(email, password)
-                            if (result is com.example.data.AuthResult.Success) {
-                                loginStatus = null
-                                onLoginSuccess(if (username == "teste" || email.startsWith("teste@")) "teste" else "usuario")
-                            } else {
-                                // Fallback para login local se Firebase falhar (Auth não configurado)
-                                loginStatus = null
-                                onLoginSuccess(if (username == "teste" || email.startsWith("teste@")) "teste" else "usuario")
-                            }
+                    val email = if (username == "mestre") "mestre@nrdlojas.com"
+                        else if (username == "admin") "admin@nrdlojas.com"
+                        else if (!username.contains("@")) "${username}@nrdlojas.com" 
+                        else username
+                    
+                    scope.launch {
+                        loginStatus = "Autenticando..."
+                        val result = viewModel.authRepository.login(email, password)
+                        if (result is com.example.data.AuthResult.Success) {
+                            loginStatus = null
+                            val role = if (email == "mestre@nrdlojas.com") "mestre"
+                                       else if (email == "admin@nrdlojas.com") "admin"
+                                       else "usuario"
+                            onLoginSuccess(role)
+                        } else {
+                            loginStatus = "Falha no login. Verifique no Firebase."
                         }
                     }
                 },

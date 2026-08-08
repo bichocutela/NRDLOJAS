@@ -98,6 +98,14 @@ class ProductRepository(
         }
         dao.insertProducts(updatedProducts)
     }
+    suspend fun deleteProduct(product: Product) {
+        dao.deleteProduct(product)
+    }
+
+    suspend fun deleteProducts(products: List<Product>) {
+        dao.deleteProducts(products)
+    }
+
     suspend fun insertProduct(product: Product) {
         dao.insertProduct(product)
         FirebaseService.saveProduct(product)
@@ -669,7 +677,7 @@ class ProductRepository(
         }
         if (missingProducts.isNotEmpty()) {
             dao.insertProducts(missingProducts)
-            missingProducts.forEach { FirebaseService.saveProduct(it) }
+            // Removed FirebaseService.saveProduct(it) to prevent local defaults from overwriting remote
         }
 
         if (dao.getProductCount() == 0) {

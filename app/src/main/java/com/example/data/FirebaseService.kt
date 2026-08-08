@@ -47,6 +47,17 @@ object FirebaseService {
             Log.e("FirebaseService", "Error saving product", e)
         }
     }
+    
+    suspend fun deleteProduct(code: String) {
+        if (!isFirebaseConfigured()) return
+        try {
+            val firestore = FirebaseFirestore.getInstance()
+            firestore.collection("products").document(code).delete().await()
+        } catch (e: Exception) {
+            Log.e("FirebaseService", "Error deleting product", e)
+        }
+    }
+
 
     suspend fun syncAllProducts(products: List<com.example.data.Product>) {
         if (!isFirebaseConfigured()) return
@@ -106,6 +117,44 @@ object FirebaseService {
         }
     }
 
+    fun observeProducts(): Flow<List<com.example.data.Product>> = callbackFlow {
+        if (!isFirebaseConfigured()) {
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+        val firestore = FirebaseFirestore.getInstance()
+        val registration = firestore.collection("products")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val products = snapshot.documents.mapNotNull { doc ->
+                        val code = doc.getString("code") ?: return@mapNotNull null
+                        val name = doc.getString("name") ?: ""
+                        val searchName = doc.getString("searchName") ?: ""
+                        val category = doc.getString("category") ?: ""
+                        val unit = doc.getString("unit") ?: "un"
+                        val imageUrl = doc.getString("imageUrl")
+                        val searchCount = doc.getLong("searchCount")?.toInt() ?: 0
+                        com.example.data.Product(
+                            code = code,
+                            name = name,
+                            searchName = searchName,
+                            category = category,
+                            unit = unit,
+                            imageUrl = imageUrl,
+                            searchCount = searchCount
+                        )
+                    }
+                    trySend(products)
+                }
+            }
+        awaitClose { registration.remove() }
+    }
+
     fun observeLatestProduct(): Flow<Map<String, Any>?> = callbackFlow {
         if (!isFirebaseConfigured()) {
             trySend(null)
@@ -138,13 +187,19 @@ object FirebaseService {
     }
     
     fun initialize(context: android.content.Context) {
-        try {
-            val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
-            if (auth.currentUser == null) {
-                auth.signInAnonymously()
-            }
+        // Inicialização removida conforme solicitado (não usar signInAnonymously).
+    }
+
+    suspend fun uploadImageToStorage(uri: Uri, path: String): String? {
+        if (!isFirebaseConfigured()) return null
+        return try {
+            val storage = FirebaseStorage.getInstance()
+            val ref = storage.reference.child(path)
+            ref.putFile(uri).await()
+            ref.downloadUrl.await().toString()
         } catch (e: Exception) {
-            Log.e("FirebaseService", "Auth error", e)
+            Log.e("FirebaseService", "Error uploading to storage", e)
+            null
         }
     }
 
@@ -154,36 +209,20 @@ object FirebaseService {
             return null
         }
         return try {
-            val inputStream = context.contentResolver.openInputStream(uri)
-            val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
-            inputStream?.close()
-
-            val maxW = 1024
-            val maxH = 1024
-            val scaledBitmap = if (bitmap.width > maxW || bitmap.height > maxH) {
-                val ratio = Math.min(maxW.toFloat() / bitmap.width, maxH.toFloat() / bitmap.height)
-                android.graphics.Bitmap.createScaledBitmap(bitmap, (bitmap.width * ratio).toInt(), (bitmap.height * ratio).toInt(), true)
-            } else {
-                bitmap
+            val downloadUrl = uploadImageToStorage(uri, "banners/hero_banner_${System.currentTimeMillis()}.jpg")
+            if (downloadUrl != null) {
+                val firestore = FirebaseFirestore.getInstance()
+                firestore.collection("config").document("appSettings")
+                    .set(mapOf("bannerUrl" to downloadUrl)).await()
             }
-
-            val baos = java.io.ByteArrayOutputStream()
-            scaledBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 60, baos)
-            val base64Data = android.util.Base64.encodeToString(baos.toByteArray(), android.util.Base64.NO_WRAP)
-            val dataUrl = "data:image/jpeg;base64,$base64Data"
-            
-            // Save to Firestore
-            val firestore = FirebaseFirestore.getInstance()
-            firestore.collection("config").document("appSettings")
-                .set(mapOf("bannerUrl" to dataUrl)).await()
-                
-            dataUrl
+            downloadUrl
         } catch (e: Exception) {
             lastError = e.message
             Log.e("FirebaseService", "Error uploading banner", e)
             null
         }
     }
+
 
     suspend fun setBannerUrlDirectly(url: String): String? {
         if (!isFirebaseConfigured()) {

@@ -56,8 +56,26 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
         viewModelScope.launch {
             com.example.data.FirebaseService.observeLatestProduct().collect {
                 _latestProduct.value = it
-                if (it != null) {
-                    syncProductsFromFirebase()
+            }
+        }
+        viewModelScope.launch {
+            com.example.data.FirebaseService.observeProducts().collect { remoteProducts ->
+                if (remoteProducts.isNotEmpty()) {
+                    val localProducts = repository.getAllProductsSync()
+                    val remoteIds = remoteProducts.map { it.code }.toSet()
+                    val toDelete = localProducts.filter { it.code !in remoteIds }
+                    
+                    if (toDelete.isNotEmpty() && !_isSyncing.value) {
+                        repository.deleteProducts(toDelete)
+                    }
+                    
+                    val missingOrUpdated = remoteProducts.filter { remote ->
+                        val local = localProducts.find { it.code == remote.code }
+                        local == null || local.name != remote.name || local.imageUrl != remote.imageUrl || local.category != remote.category || local.unit != remote.unit
+                    }
+                    if (missingOrUpdated.isNotEmpty() && !_isSyncing.value) {
+                        repository.insertProducts(missingOrUpdated)
+                    }
                 }
             }
         }
@@ -225,29 +243,49 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
 
     fun updateProduct(product: Product) {
         viewModelScope.launch {
-            repository.updateProduct(product)
+            var finalProduct = product
+            if (product.imageUrl?.startsWith("content://") == true) {
+                val uri = android.net.Uri.parse(product.imageUrl)
+                val url = com.example.data.FirebaseService.uploadImageToStorage(uri, "products/${product.code}_${System.currentTimeMillis()}.jpg")
+                if (url != null) {
+                    finalProduct = product.copy(imageUrl = url)
+                }
+            }
+            repository.updateProduct(finalProduct)
+            if (com.example.data.FirebaseService.isFirebaseConfigured()) {
+                com.example.data.FirebaseService.saveProduct(finalProduct)
+                _syncMessage.emit("Produto atualizado na nuvem!")
+            }
         }
     }
+
 
     private val _syncMessage = MutableSharedFlow<String>()
     val syncMessage = _syncMessage.asSharedFlow()
 
     fun addProduct(name: String, code: String, category: String, unit: String, imageUrl: String? = null) {
         viewModelScope.launch {
+            var finalImageUrl = imageUrl
+            if (imageUrl?.startsWith("content://") == true) {
+                val uri = android.net.Uri.parse(imageUrl)
+                val url = com.example.data.FirebaseService.uploadImageToStorage(uri, "products/${code}_${System.currentTimeMillis()}.jpg")
+                if (url != null) {
+                    finalImageUrl = url
+                }
+            }
             val product = Product(
                 code = code,
                 name = name,
                 searchName = name.lowercase().replace(Regex("[áàâã]"), "a").replace(Regex("[éèê]"), "e").replace(Regex("[íìî]"), "i").replace(Regex("[óòôõ]"), "o").replace(Regex("[úùû]"), "u").replace(Regex("[ç]"), "c"),
                 category = category,
                 unit = unit,
-                imageUrl = imageUrl
+                imageUrl = finalImageUrl
             )
             repository.insertProduct(product)
             if (!com.example.data.FirebaseService.isFirebaseConfigured()) {
                 _syncMessage.emit("Salvo apenas localmente (Nuvem não configurada)")
             } else {
                 com.example.data.FirebaseService.saveProduct(product)
-                com.example.data.FirebaseService.publishLatestProduct(product)
                 _syncMessage.emit("Produto adicionado na nuvem!")
             }
             _newProductsCount.value += 1
@@ -265,14 +303,33 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
                 _isSyncing.value = false
                 return@launch
             }
-            val remoteProducts = com.example.data.FirebaseService.getAllProducts()
-            if (remoteProducts.isNotEmpty()) {
-                repository.insertProducts(remoteProducts)
+            try {
+                val remoteProducts = com.example.data.FirebaseService.getAllProducts()
+                if (remoteProducts.isNotEmpty()) {
+                    val localProducts = repository.getAllProductsSync()
+                    val remoteIds = remoteProducts.map { it.code }.toSet()
+                    val toDelete = localProducts.filter { it.code !in remoteIds }
+                    
+                    if (toDelete.isNotEmpty()) {
+                        repository.deleteProducts(toDelete)
+                    }
+                    
+                    val missingOrUpdated = remoteProducts.filter { remote ->
+                        val local = localProducts.find { it.code == remote.code }
+                        local == null || local.name != remote.name || local.imageUrl != remote.imageUrl || local.category != remote.category || local.unit != remote.unit
+                    }
+                    if (missingOrUpdated.isNotEmpty()) {
+                        repository.insertProducts(missingOrUpdated)
+                    }
+                }
+            } catch (e: Exception) {
+                // Ignore
+            } finally {
+                _isSyncing.value = false
             }
-            _isSyncing.value = false
         }
-
     }
+
     fun syncDatabase() {
         viewModelScope.launch {
             _isSyncing.value = true
@@ -283,14 +340,26 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
                     _isSyncing.value = false
                     return@launch
                 }
-                val localProducts = repository.getAllProductsSync()
-                if (localProducts.isNotEmpty()) {
-                    com.example.data.FirebaseService.syncAllProducts(localProducts)
-                }
+                
                 val remoteProducts = com.example.data.FirebaseService.getAllProducts()
                 if (remoteProducts.isNotEmpty()) {
-                    repository.insertProducts(remoteProducts)
+                    val localProducts = repository.getAllProductsSync()
+                    val remoteIds = remoteProducts.map { it.code }.toSet()
+                    val toDelete = localProducts.filter { it.code !in remoteIds }
+                    
+                    if (toDelete.isNotEmpty()) {
+                        repository.deleteProducts(toDelete)
+                    }
+                    
+                    val missingOrUpdated = remoteProducts.filter { remote ->
+                        val local = localProducts.find { it.code == remote.code }
+                        local == null || local.name != remote.name || local.imageUrl != remote.imageUrl || local.category != remote.category || local.unit != remote.unit
+                    }
+                    if (missingOrUpdated.isNotEmpty()) {
+                        repository.insertProducts(missingOrUpdated)
+                    }
                 }
+                
                 _syncMessage.emit("Banco de dados sincronizado com sucesso!")
             } catch (e: Throwable) {
                 _syncMessage.emit("Erro ao sincronizar: ${e.message}")
@@ -323,6 +392,16 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
         val tabs = repository.getAllTabs().first { list -> list.any { it == tab } }
         com.example.data.FirebaseService.syncAllDynamicTabs(tabs)
         isSyncingTabs = false
+    }
+
+    fun deleteProduct(product: Product) {
+        viewModelScope.launch {
+            repository.deleteProduct(product)
+            if (com.example.data.FirebaseService.isFirebaseConfigured()) {
+                com.example.data.FirebaseService.deleteProduct(product.code)
+                _syncMessage.emit("Produto excluído na nuvem!")
+            }
+        }
     }
 
     fun deleteTab(tab: com.example.data.DynamicTab) = viewModelScope.launch {

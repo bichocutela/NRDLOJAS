@@ -335,7 +335,7 @@ fun AdminScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                                         unit = "un",
                                         imageUrl = productImageUrl.ifBlank { null }?.let { com.example.util.ImageUrlHelper.normalizeUrl(it) }
                                     )
-                                    com.example.util.NotificationHelper.showNewProductNotification(context, productName)
+                                    // com.example.util.NotificationHelper.showNewProductNotification(context, productName) // Deixando via Firebase para evitar duplicidade
                                     showManualForm = false
                                     scope.launch {
                                         snackbarHostState.showSnackbar("Produto adicionado com sucesso!")

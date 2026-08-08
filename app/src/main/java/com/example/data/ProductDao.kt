@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Delete
 import kotlinx.coroutines.flow.Flow
 
 data class CategoryCount(
@@ -49,6 +50,12 @@ interface ProductDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertProducts(products: List<Product>)
+
+    @Delete
+    suspend fun deleteProduct(product: Product)
+
+    @Delete
+    suspend fun deleteProducts(products: List<Product>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertProduct(product: Product)

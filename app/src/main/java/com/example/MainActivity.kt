@@ -117,13 +117,20 @@ class MainActivity : ComponentActivity() {
             val lastNotifiedCode by userPreferences.lastNotifiedProductCode.collectAsState("___LOADING___")
             val context = androidx.compose.ui.platform.LocalContext.current
             
-            LaunchedEffect(latestFirebase, latestLocal, lastNotifiedCode) {
+            LaunchedEffect(latestFirebase, lastNotifiedCode) {
                 if (lastNotifiedCode == "___LOADING___") return@LaunchedEffect
-                val dispName = latestFirebase?.get("name")?.toString() ?: latestLocal?.name
-                val dispCode = latestFirebase?.get("code")?.toString() ?: latestLocal?.code
-                if (dispName != null && dispCode != null && dispCode != lastNotifiedCode) {
-                    com.example.util.NotificationHelper.showNewProductNotification(context, dispName)
-                    userPreferences.setLastNotifiedProductCode(dispCode)
+                
+                val dispName = latestFirebase?.get("name")?.toString()
+                val eventId = latestFirebase?.get("timestamp")?.toString() ?: latestFirebase?.get("code")?.toString()
+                
+                if (dispName != null && eventId != null && eventId != lastNotifiedCode) {
+                    if (lastNotifiedCode == null) {
+                        // Primeiro acesso após instalação: apenas registra o evento atual para não notificar coisas antigas
+                        userPreferences.setLastNotifiedProductCode(eventId)
+                    } else {
+                        com.example.util.NotificationHelper.showNewProductNotification(context, dispName)
+                        userPreferences.setLastNotifiedProductCode(eventId)
+                    }
                 }
             }
             val currentDensity = LocalDensity.current

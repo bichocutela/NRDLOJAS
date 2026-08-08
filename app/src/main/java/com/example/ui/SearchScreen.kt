@@ -221,13 +221,7 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
 
     val context = LocalContext.current
 
-    val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
-    PullToRefreshBox(
-        isRefreshing = isSyncing,
-        onRefresh = { viewModel.syncProductsFromFirebase() },
-        modifier = Modifier.fillMaxSize().background(Color.White)
-    ) {
-        Column(
+    Column(
             modifier = Modifier.fillMaxSize()
         ) {
         // App Bar / Header (Hero Image)
@@ -386,29 +380,7 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
                         }
                     }
                 }
-                val dispName = latestProductFirebase?.get("name")?.toString() ?: latestProductLocal?.name
-                val dispCode = latestProductFirebase?.get("code")?.toString() ?: latestProductLocal?.code
-                if (dispName != null && dispCode != null) {
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.NewReleases, contentDescription = "Novo", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Adicionado recentemente: $dispName (Código: $dispCode)",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
-                    }
-                }
+                
 
                 if (favorites.isNotEmpty()) {
                     item {
@@ -480,7 +452,6 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
         }
 
     }
-}
 
 @Composable
 fun SectionHeader(title: String) {
