@@ -3,7 +3,18 @@ package com.example.data
 import android.net.Uri
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.storage.FirebaseStorage
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okio.source
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import com.example.BuildConfig
+import java.util.UUID
+import android.webkit.MimeTypeMap
+import okhttp3.RequestBody.Companion.asRequestBody
+
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -12,6 +23,7 @@ import android.util.Log
 
 object FirebaseService {
     var lastError: String? = null
+    private var appContext: android.content.Context? = null
     suspend fun publishLatestProduct(product: com.example.data.Product) {
         if (!isFirebaseConfigured()) return
         try {
@@ -187,42 +199,122 @@ object FirebaseService {
     }
     
     fun initialize(context: android.content.Context) {
-        // Inicialização removida conforme solicitado (não usar signInAnonymously).
+        appContext = context.applicationContext
     }
 
-    suspend fun uploadImageToStorage(uri: Uri, path: String): String? {
-        if (!isFirebaseConfigured()) return null
-        return try {
-            val storage = FirebaseStorage.getInstance()
-            val ref = storage.reference.child(path)
-            ref.putFile(uri).await()
-            ref.downloadUrl.await().toString()
+    private val okHttpClient = OkHttpClient()
+
+    private fun getMimeType(context: android.content.Context, uri: android.net.Uri): String {
+        val extension = MimeTypeMap.getFileExtensionFromUrl(uri.toString())
+        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
+            ?: context.contentResolver.getType(uri) ?: "image/jpeg"
+    }
+
+    suspend fun uploadImageToStorage(uri: android.net.Uri, path: String): String? = withContext(Dispatchers.IO) {
+        val supabaseUrl = BuildConfig.SUPABASE_URL
+        val supabaseKey = BuildConfig.SUPABASE_ANON_KEY
+        
+        if (supabaseUrl.isEmpty() || supabaseKey.isEmpty()) {
+            lastError = "Supabase não configurado"
+            return@withContext null
+        }
+        
+        val currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+        if (currentUser == null) {
+            lastError = "Usuário não autenticado no Firebase Auth"
+            return@withContext null
+        }
+        
+        val firebaseToken = try {
+            currentUser.getIdToken(false).await().token
         } catch (e: Exception) {
-            Log.e("FirebaseService", "Error uploading to storage", e)
-            null
+            lastError = "Erro ao obter token do Firebase"
+            return@withContext null
+        }
+        
+        if (firebaseToken == null) {
+            lastError = "Token do Firebase nulo"
+            return@withContext null
+        }
+
+        try {
+            val ctx = appContext ?: return@withContext null
+            val contentResolver = ctx.contentResolver
+            val mimeType = getMimeType(ctx, uri)
+            
+            // Limit check (50MB)
+            contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
+                if (pfd.statSize > 50 * 1024 * 1024) {
+                    lastError = "Imagem muito grande (máx 50MB)"
+                    return@withContext null
+                }
+            }
+            
+            val inputStream = contentResolver.openInputStream(uri) ?: return@withContext null
+            val bytes = inputStream.readBytes()
+            inputStream.close()
+            
+            val requestBody = okhttp3.MultipartBody.Builder()
+                .setType(okhttp3.MultipartBody.FORM)
+                .addFormDataPart("path", path)
+                .addFormDataPart("file", "image.jpg", bytes.toRequestBody(mimeType.toMediaType()))
+                .build()
+            
+            val url = "$supabaseUrl/functions/v1/upload-image"
+            
+            val request = Request.Builder()
+                .url(url)
+                .post(requestBody) 
+                .addHeader("Authorization", "Bearer $supabaseKey")
+                .addHeader("x-firebase-token", firebaseToken)
+                .build()
+                
+            val response = okHttpClient.newCall(request).execute()
+            if (response.isSuccessful) {
+                val responseStr = response.body?.string()
+                try {
+                    if (responseStr != null) {
+                        val json = org.json.JSONObject(responseStr)
+                        if (json.has("url")) {
+                            return@withContext json.getString("url")
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("SupabaseStorage", "Error parsing response", e)
+                }
+                return@withContext "$supabaseUrl/storage/v1/object/public/nrdlojas-images/$path"
+            } else {
+                Log.e("SupabaseStorage", "Error uploading: ${response.code} ${response.message} ${response.body?.string()}")
+                lastError = "Falha no upload da imagem."
+                return@withContext null
+            }
+        } catch (e: Exception) {
+            Log.e("SupabaseStorage", "Exception uploading", e)
+            lastError = e.message
+            return@withContext null
         }
     }
 
-    suspend fun uploadBanner(context: android.content.Context, uri: Uri): String? {
-        if (!isFirebaseConfigured()) {
-            lastError = "Firebase not configured (initialize failed?)"
-            return null
-        }
+    suspend fun uploadBanner(uri: android.net.Uri): String? {
         return try {
-            val downloadUrl = uploadImageToStorage(uri, "banners/hero_banner_${System.currentTimeMillis()}.jpg")
+            val ctx = appContext ?: return null
+            val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(getMimeType(ctx, uri)) ?: "jpg"
+            val path = "banners/hero_banner_${System.currentTimeMillis()}.$extension"
+            val downloadUrl = uploadImageToStorage(uri, path)
             if (downloadUrl != null) {
-                val firestore = FirebaseFirestore.getInstance()
-                firestore.collection("config").document("appSettings")
-                    .set(mapOf("bannerUrl" to downloadUrl)).await()
+                if (isFirebaseConfigured()) {
+                    val firestore = FirebaseFirestore.getInstance()
+                    firestore.collection("config").document("appSettings")
+                        .set(mapOf("bannerUrl" to downloadUrl)).await()
+                }
             }
             downloadUrl
         } catch (e: Exception) {
             lastError = e.message
-            Log.e("FirebaseService", "Error uploading banner", e)
+            Log.e("SupabaseStorage", "Error uploading banner", e)
             null
         }
     }
-
 
     suspend fun setBannerUrlDirectly(url: String): String? {
         if (!isFirebaseConfigured()) {

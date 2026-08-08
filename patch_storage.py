@@ -3,125 +3,99 @@ import re
 with open('app/src/main/java/com/example/data/FirebaseService.kt', 'r') as f:
     content = f.read()
 
-# Replace uploadBanner
-pattern_banner = re.compile(r'suspend fun uploadBanner\(context: android\.content\.Context, uri: Uri\): String\? \{[\s\S]*?val firestore = FirebaseFirestore\.getInstance\(\)\s*firestore\.collection\("config"\)\.document\("appSettings"\)\s*\.set\(mapOf\("bannerUrl" to dataUrl\)\)\.await\(\)\s*dataUrl\s*\} catch \(e: Exception\) \{\s*lastError = e\.message\s*Log\.e\("FirebaseService", "Error uploading banner", e\)\s*null\s*\}\s*\}')
+# Add OkHttp import
+if 'import okhttp3' not in content:
+    content = content.replace('import com.google.firebase.firestore.FirebaseFirestore', 'import com.google.firebase.firestore.FirebaseFirestore\nimport okhttp3.MediaType.Companion.toMediaType\nimport okhttp3.OkHttpClient\nimport okhttp3.Request\nimport okhttp3.RequestBody.Companion.toRequestBody\nimport okio.source\nimport kotlinx.coroutines.Dispatchers\nimport kotlinx.coroutines.withContext\nimport com.example.BuildConfig\nimport java.util.UUID\nimport android.webkit.MimeTypeMap\nimport okhttp3.RequestBody.Companion.asRequestBody')
 
-replacement_banner = '''suspend fun uploadImageToStorage(uri: Uri, path: String): String? {
-        if (!isFirebaseConfigured()) return null
-        return try {
-            val storage = FirebaseStorage.getInstance()
-            val ref = storage.reference.child(path)
-            ref.putFile(uri).await()
-            ref.downloadUrl.await().toString()
+# Replace uploadImageToStorage and uploadBanner
+pattern = re.compile(r'suspend fun uploadImageToStorage[\s\S]*?suspend fun setBannerUrlDirectly\(url: String\): String\? \{')
+
+replacement = '''private val okHttpClient = OkHttpClient()
+
+    private fun getMimeType(context: android.content.Context, uri: android.net.Uri): String {
+        val extension = MimeTypeMap.getFileExtensionFromUrl(uri.toString())
+        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
+            ?: context.contentResolver.getType(uri) ?: "image/jpeg"
+    }
+
+    suspend fun uploadImageToStorage(context: android.content.Context, uri: android.net.Uri, path: String): String? = withContext(Dispatchers.IO) {
+        val supabaseUrl = BuildConfig.SUPABASE_URL
+        val supabaseKey = BuildConfig.SUPABASE_ANON_KEY
+        
+        if (supabaseUrl.isEmpty() || supabaseKey.isEmpty()) {
+            lastError = "Supabase não configurado"
+            return@withContext null
+        }
+
+        try {
+            val contentResolver = context.contentResolver
+            val mimeType = getMimeType(context, uri)
+            
+            // Limit check (50MB)
+            contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
+                if (pfd.statSize > 50 * 1024 * 1024) {
+                    lastError = "Imagem muito grande (máx 50MB)"
+                    return@withContext null
+                }
+            }
+            
+            val inputStream = contentResolver.openInputStream(uri) ?: return@withContext null
+            val bytes = inputStream.readBytes()
+            inputStream.close()
+            
+            val requestBody = bytes.toRequestBody(mimeType.toMediaType())
+            
+            val url = "$supabaseUrl/storage/v1/object/nrdlojas-images/$path"
+            
+            val request = Request.Builder()
+                .url(url)
+                .post(requestBody) // Supabase uses POST for upload
+                .addHeader("Authorization", "Bearer $supabaseKey")
+                .addHeader("apikey", supabaseKey)
+                .build()
+                
+            val response = okHttpClient.newCall(request).execute()
+            if (response.isSuccessful) {
+                return@withContext "$supabaseUrl/storage/v1/object/public/nrdlojas-images/$path"
+            } else {
+                Log.e("SupabaseStorage", "Error uploading: ${response.code} ${response.message} ${response.body?.string()}")
+                lastError = "Falha no upload da imagem."
+                return@withContext null
+            }
         } catch (e: Exception) {
-            Log.e("FirebaseService", "Error uploading to storage", e)
-            null
+            Log.e("SupabaseStorage", "Exception uploading", e)
+            lastError = e.message
+            return@withContext null
         }
     }
 
-    suspend fun uploadBanner(context: android.content.Context, uri: Uri): String? {
-        if (!isFirebaseConfigured()) {
-            lastError = "Firebase not configured (initialize failed?)"
-            return null
-        }
+    suspend fun uploadBanner(context: android.content.Context, uri: android.net.Uri): String? {
         return try {
-            val downloadUrl = uploadImageToStorage(uri, "banners/hero_banner_${System.currentTimeMillis()}.jpg")
+            val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(getMimeType(context, uri)) ?: "jpg"
+            val path = "banners/hero_banner_${System.currentTimeMillis()}.$extension"
+            val downloadUrl = uploadImageToStorage(context, uri, path)
             if (downloadUrl != null) {
-                val firestore = FirebaseFirestore.getInstance()
-                firestore.collection("config").document("appSettings")
-                    .set(mapOf("bannerUrl" to downloadUrl)).await()
+                if (isFirebaseConfigured()) {
+                    val firestore = FirebaseFirestore.getInstance()
+                    firestore.collection("config").document("appSettings")
+                        .set(mapOf("bannerUrl" to downloadUrl)).await()
+                }
             }
             downloadUrl
         } catch (e: Exception) {
             lastError = e.message
-            Log.e("FirebaseService", "Error uploading banner", e)
+            Log.e("SupabaseStorage", "Error uploading banner", e)
             null
         }
     }
-'''
 
-content = pattern_banner.sub(replacement_banner, content)
+    suspend fun setBannerUrlDirectly(url: String): String? {'''
 
-# Add deleteProduct
-pattern_save = re.compile(r'suspend fun saveProduct\(product: com\.example\.data\.Product\) \{[\s\S]*?publishLatestProduct\(product\)\s*\} catch \(e: Exception\) \{\s*Log\.e\("FirebaseService", "Error saving product", e\)\s*\}\s*\}')
+content = pattern.sub(replacement, content)
 
-replacement_save = '''suspend fun saveProduct(product: com.example.data.Product) {
-        if (!isFirebaseConfigured()) return
-        try {
-            val firestore = FirebaseFirestore.getInstance()
-            firestore.collection("products").document(product.code)
-                .set(mapOf(
-                    "code" to product.code,
-                    "name" to product.name,
-                    "searchName" to product.searchName,
-                    "category" to product.category,
-                    "unit" to product.unit,
-                    "imageUrl" to product.imageUrl,
-                    "searchCount" to product.searchCount,
-                    "timestamp" to System.currentTimeMillis()
-                )).await()
-            publishLatestProduct(product)
-        } catch (e: Exception) {
-            Log.e("FirebaseService", "Error saving product", e)
-        }
-    }
-    
-    suspend fun deleteProduct(code: String) {
-        if (!isFirebaseConfigured()) return
-        try {
-            val firestore = FirebaseFirestore.getInstance()
-            firestore.collection("products").document(code).delete().await()
-        } catch (e: Exception) {
-            Log.e("FirebaseService", "Error deleting product", e)
-        }
-    }
-'''
-content = pattern_save.sub(replacement_save, content)
-
-# Add observeProducts
-pattern_observe_latest = re.compile(r'fun observeLatestProduct\(\): Flow<Map<String, Any>\?> = callbackFlow \{')
-
-replacement_observe_latest = '''fun observeProducts(): Flow<List<com.example.data.Product>> = callbackFlow {
-        if (!isFirebaseConfigured()) {
-            trySend(emptyList())
-            close()
-            return@callbackFlow
-        }
-        val firestore = FirebaseFirestore.getInstance()
-        val registration = firestore.collection("products")
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    trySend(emptyList())
-                    return@addSnapshotListener
-                }
-                if (snapshot != null) {
-                    val products = snapshot.documents.mapNotNull { doc ->
-                        val code = doc.getString("code") ?: return@mapNotNull null
-                        val name = doc.getString("name") ?: ""
-                        val searchName = doc.getString("searchName") ?: ""
-                        val category = doc.getString("category") ?: ""
-                        val unit = doc.getString("unit") ?: "un"
-                        val imageUrl = doc.getString("imageUrl")
-                        val searchCount = doc.getLong("searchCount")?.toInt() ?: 0
-                        com.example.data.Product(
-                            code = code,
-                            name = name,
-                            searchName = searchName,
-                            category = category,
-                            unit = unit,
-                            imageUrl = imageUrl,
-                            searchCount = searchCount
-                        )
-                    }
-                    trySend(products)
-                }
-            }
-        awaitClose { registration.remove() }
-    }
-
-    fun observeLatestProduct(): Flow<Map<String, Any>?> = callbackFlow {'''
-content = pattern_observe_latest.sub(replacement_observe_latest, content)
+# Remove FirebaseStorage import
+content = content.replace('import com.google.firebase.storage.FirebaseStorage', '')
 
 with open('app/src/main/java/com/example/data/FirebaseService.kt', 'w') as f:
     f.write(content)
-print("Patched FirebaseService")
+print("Patched FirebaseService for Supabase Storage")
