@@ -157,7 +157,15 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
     
 val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(initialValue = "red")
     
-    val normalizedTheme = remember(appTheme) { appTheme.trim().lowercase() }
+    val normalizedTheme = remember(appTheme) { 
+        when (appTheme.trim().lowercase()) {
+            "gold" -> "gold"
+            "green" -> "green"
+            "blue" -> "blue"
+            "orange" -> "orange"
+            else -> "red"
+        }
+    }
     val localBannerUrl = remember(normalizedTheme) {
         "file:///android_asset/themes/theme_${normalizedTheme}.jpg"
     }
