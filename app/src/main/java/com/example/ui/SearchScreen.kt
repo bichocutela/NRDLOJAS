@@ -239,7 +239,8 @@ val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(i
                 modifier = Modifier.fillMaxSize()
             ) {
                 var localBannerFailed by remember(normalizedTheme) { mutableStateOf(false) }
-                
+                val bannerPath = "file:///android_asset/themes/theme_${normalizedTheme}.jpg"
+
                 if (localBannerFailed) {
                     Box(
                         modifier = Modifier
@@ -248,13 +249,13 @@ val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(i
                     )
                 } else {
                     coil.compose.AsyncImage(
-                        model = localBannerUrl,
+                        model = bannerPath,
                         contentDescription = "Banner Nordestão (Local)",
                         contentScale = ContentScale.FillWidth,
                         modifier = Modifier.fillMaxSize(),
                         onError = { state ->
                             localBannerFailed = true
-                            android.util.Log.e("BannerError", "Falha ao carregar asset local: $localBannerUrl, erro: ${state.result.throwable.message}")
+                            android.util.Log.e("BannerError", "Falha ao carregar asset local: $bannerPath, erro: ${state.result.throwable.message}")
                         }
                     )
                 }
