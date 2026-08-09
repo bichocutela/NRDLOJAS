@@ -166,9 +166,7 @@ val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(i
             else -> "red"
         }
     }
-    val localBannerUrl = remember(normalizedTheme) {
-        "file:///android_asset/themes/theme_${normalizedTheme}.jpg"
-    }
+
 
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
@@ -238,27 +236,7 @@ val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(i
             Box(
                 modifier = Modifier.fillMaxSize()
             ) {
-                var localBannerFailed by remember(normalizedTheme) { mutableStateOf(false) }
-                val bannerPath = "file:///android_asset/themes/theme_${normalizedTheme}.jpg"
-
-                if (localBannerFailed) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.primaryContainer)
-                    )
-                } else {
-                    coil.compose.AsyncImage(
-                        model = bannerPath,
-                        contentDescription = "Banner Nordestão (Local)",
-                        contentScale = ContentScale.FillWidth,
-                        modifier = Modifier.fillMaxSize(),
-                        onError = { state ->
-                            localBannerFailed = true
-                            android.util.Log.e("BannerError", "Falha ao carregar asset local: $bannerPath, erro: ${state.result.throwable.message}")
-                        }
-                    )
-                }
+                ThemeBanner(appTheme = normalizedTheme)
                 Text(
                     text = "NRD Códigos Correlatos",
                     style = MaterialTheme.typography.titleMedium,
@@ -926,5 +904,55 @@ fun generateBarcodeBitmap(data: String): ImageBitmap? {
         return bitmap.asImageBitmap()
     } catch (e: Exception) {
         return null
+    }
+}
+
+
+@Composable
+fun ThemeBanner(appTheme: String) {
+    val context = LocalContext.current
+
+    val normalizedTheme = when (appTheme.trim().lowercase()) {
+        "gold" -> "gold"
+        "green" -> "green"
+        "blue" -> "blue"
+        "orange" -> "orange"
+        else -> "red"
+    }
+
+    val assetName = "themes/theme_${normalizedTheme}.jpg"
+    val fallbackAssetName = "themes/theme_red.jpg"
+
+    val bitmap = remember(normalizedTheme) {
+        var b = runCatching {
+            context.assets.open(assetName).use { input ->
+                android.graphics.BitmapFactory.decodeStream(input)
+            }
+        }.getOrNull()
+        
+        if (b == null) {
+            b = runCatching {
+                context.assets.open(fallbackAssetName).use { input ->
+                    android.graphics.BitmapFactory.decodeStream(input)
+                }
+            }.getOrNull()
+        }
+        b
+    }
+
+    if (bitmap != null) {
+        Image(
+            bitmap = bitmap.asImageBitmap(),
+            contentDescription = "Banner do tema $normalizedTheme",
+            modifier = Modifier
+                .fillMaxSize(),
+            contentScale = ContentScale.FillWidth
+        )
+    } else {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.primaryContainer)
+        )
     }
 }
