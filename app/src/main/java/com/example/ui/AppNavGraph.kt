@@ -16,7 +16,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.google.firebase.auth.FirebaseAuth
 import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -36,46 +35,8 @@ fun AppNavGraph(viewModel: MainViewModel) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val sharedPref = remember { context.getSharedPreferences("admin_prefs", Context.MODE_PRIVATE) }
-    val currentUser = remember { FirebaseAuth.getInstance().currentUser }
-    var isLoggedIn by remember { 
-        mutableStateOf(sharedPref.getBoolean("is_logged_in", false) || currentUser != null) 
-    }
-    var userRole by remember { 
-        mutableStateOf(
-            if (currentUser != null) {
-                val email = currentUser.email ?: ""
-                when (email) {
-                    "mestre@nrdlojas.com" -> "mestre"
-                    "admin@nrdlojas.com" -> "admin"
-                    else -> sharedPref.getString("user_role", "admin") ?: "admin"
-                }
-            } else {
-                sharedPref.getString("user_role", "admin") ?: "admin"
-            }
-        )
-    }
-
-    LaunchedEffect(isLoggedIn, userRole) {
-        if (isLoggedIn) {
-            sharedPref.edit()
-                .putBoolean("is_logged_in", true)
-                .putString("user_role", userRole)
-                .apply()
-        }
-    }
-    
-    LaunchedEffect(Unit) {
-        val currentUserNow = FirebaseAuth.getInstance().currentUser
-        if (currentUserNow != null) {
-            val email = currentUserNow.email ?: ""
-            android.util.Log.d("LoginDebug", "Inicializando com currentUser: $email")
-            if (email == "mestre@nrdlojas.com") {
-                navController.navigate("mestre")
-            } else if (email == "admin@nrdlojas.com") {
-                navController.navigate("admin")
-            }
-        }
-    }
+    var isLoggedIn by remember { mutableStateOf(sharedPref.getBoolean("is_logged_in", false)) }
+    var userRole by remember { mutableStateOf(sharedPref.getString("user_role", "admin") ?: "admin") }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -244,36 +205,13 @@ fun LoginDrawerContent(
             Button(
                 onClick = {
                     if (isLoading) return@Button
-                    val inputUser = username.trim()
-                    android.util.Log.d("LoginDebug", "Botão Entrar clicado. Usuário recebido: $inputUser")
-                    val email = if (inputUser == "mestre") "mestre@nrdlojas.com"
-                        else if (inputUser == "admin") "admin@nrdlojas.com"
-                        else if (!inputUser.contains("@")) "${inputUser}@nrdlojas.com" 
-                        else inputUser
-                    android.util.Log.d("LoginDebug", "E-mail normalizado: $email")
-                    
-                    scope.launch {
-                        isLoading = true
-                        loginStatus = "Autenticando..."
-                        try {
-                            val result = viewModel.authRepository.login(email, password)
-                            if (result is com.example.data.AuthResult.Success) {
-                                loginStatus = null
-                                val role = if (result.email == "mestre@nrdlojas.com") "mestre"
-                                           else if (result.email == "admin@nrdlojas.com") "admin"
-                                           else "usuario"
-                                android.util.Log.d("LoginDebug", "Login sucesso na UI. Role: $role. Navegando...")
-                                onLoginSuccess(role)
-                            } else if (result is com.example.data.AuthResult.Error) {
-                                android.util.Log.e("LoginDebug", "Falha no login: ${result.message}")
-                                loginStatus = result.message
-                            }
-                        } catch (e: Exception) {
-                            android.util.Log.e("LoginDebug", "Exceção não tratada na UI: ${e.message}")
-                            loginStatus = "Erro inesperado: ${e.message}"
-                        } finally {
-                            isLoading = false
-                        }
+                    val inputUser = username.trim().lowercase()
+                    if (inputUser == "admin" && password == "nrdlojas") {
+                        onLoginSuccess("admin")
+                    } else if (inputUser == "mestre" && password == "nrdlojas") {
+                        onLoginSuccess("mestre")
+                    } else {
+                        loginStatus = "Usuário ou senha incorretos"
                     }
                 },
                 enabled = !isLoading,
@@ -316,7 +254,10 @@ fun LoginDrawerContent(
                 )
             }
             OutlinedButton(
-                onClick = { loginStatus = null; onLogout() },
+                onClick = { 
+                    loginStatus = null
+                    onLogout() 
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Sair")

@@ -157,11 +157,9 @@ fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
     
 val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(initialValue = "red")
     
-    val remoteBannerUrl = remember(appTheme) {
-        "${com.example.BuildConfig.SUPABASE_URL}/storage/v1/object/public/nrdlojas-images/banners/themes/theme_${appTheme}.jpg"
-    }
-    val localBannerUrl = remember(appTheme) {
-        "file:///android_asset/themes/theme_${appTheme}.jpg"
+    val normalizedTheme = remember(appTheme) { appTheme.trim().lowercase() }
+    val localBannerUrl = remember(normalizedTheme) {
+        "file:///android_asset/themes/theme_${normalizedTheme}.jpg"
     }
 
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
@@ -232,8 +230,7 @@ val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(i
             Box(
                 modifier = Modifier.fillMaxSize()
             ) {
-                var useLocalBanner by remember(appTheme) { mutableStateOf(false) }
-                var localBannerFailed by remember(appTheme) { mutableStateOf(false) }
+                var localBannerFailed by remember(normalizedTheme) { mutableStateOf(false) }
                 
                 if (localBannerFailed) {
                     Box(
@@ -241,7 +238,7 @@ val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(i
                             .fillMaxSize()
                             .background(MaterialTheme.colorScheme.primaryContainer)
                     )
-                } else if (useLocalBanner) {
+                } else {
                     coil.compose.AsyncImage(
                         model = localBannerUrl,
                         contentDescription = "Banner Nordestão (Local)",
@@ -250,17 +247,6 @@ val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(i
                         onError = { state ->
                             localBannerFailed = true
                             android.util.Log.e("BannerError", "Falha ao carregar asset local: $localBannerUrl, erro: ${state.result.throwable.message}")
-                        }
-                    )
-                } else {
-                    coil.compose.AsyncImage(
-                        model = remoteBannerUrl,
-                        contentDescription = "Banner Nordestão",
-                        contentScale = ContentScale.FillWidth,
-                        modifier = Modifier.fillMaxSize(),
-                        onError = { state ->
-                            useLocalBanner = true
-                            android.util.Log.e("BannerError", "Falha ao carregar banner remoto: $remoteBannerUrl, erro: ${state.result.throwable.message}")
                         }
                     )
                 }
