@@ -24,7 +24,11 @@ class AuthRepository {
         return try {
             _authState.value = AuthState.Loading
             android.util.Log.d("LoginDebug", "Iniciando Firebase login para: $email")
+            val firebaseApp = FirebaseApp.getInstance()
+            android.util.Log.d("LoginDebug", "Firebase ProjectId: ${firebaseApp.options.projectId}")
+            android.util.Log.d("LoginDebug", "Firebase ApplicationId: ${firebaseApp.options.applicationId}")
             val auth = FirebaseAuth.getInstance()
+            android.util.Log.d("LoginDebug", "FirebaseAuth App Name: ${auth.app.name}")
             val result = kotlinx.coroutines.withTimeout(15000L) {
                 auth.signInWithEmailAndPassword(email, pass).await()
             }

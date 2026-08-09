@@ -31,8 +31,29 @@ jobs:
       run: chmod +x gradlew
 
     - name: Create google-services.json
+      env:
+        GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
       run: |
-        printf '%s' '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
+        mkdir -p app
+        printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+        test -s app/google-services.json
+
+    - name: Validate google-services.json
+      run: |
+        python -c '
+        import json, sys
+        try:
+            with open("app/google-services.json") as f:
+                data = json.load(f)
+            assert data["project_info"]["project_id"] == "appcodigo-7f245", "Invalid project_id"
+            assert data["project_info"]["project_number"] == "146947124596", "Invalid project_number"
+            packages = [c["client_info"]["android_client_info"]["package_name"] for c in data.get("client", [])]
+            assert "com.aistudio.codigomercado.xzbkql" in packages, "Invalid package_name"
+            print("google-services.json is valid.")
+        except Exception as e:
+            print("Validation failed:", e)
+            sys.exit(1)
+        '
 
     - name: Build with Gradle
       run: ./gradlew assembleDebug --stacktrace
