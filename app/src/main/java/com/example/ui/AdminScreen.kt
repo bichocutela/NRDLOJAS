@@ -288,16 +288,18 @@ fun AdminScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                         if (productName.isNotBlank() && productCode.isNotBlank()) {
                             scope.launch {
                                 isAdding = true
-                                viewModel.addProductSuspend(
+                                val success = viewModel.addProductSuspend(
                                     name = productName,
                                     code = productCode,
                                     category = if (productCategory.isNotBlank()) productCategory else "Geral",
                                     unit = "un",
                                     imageUrl = productImageUrl.ifBlank { null }?.let { com.example.util.ImageUrlHelper.normalizeUrl(it) }
                                 )
-                                showManualForm = false
                                 isAdding = false
-                                snackbarHostState.showSnackbar("Produto adicionado com sucesso!")
+                                if (success) {
+                                    showManualForm = false
+                                    snackbarHostState.showSnackbar("Produto adicionado com sucesso!")
+                                }
                             }
                         } else {
                             scope.launch {
@@ -557,9 +559,11 @@ fun AdminProductItem(product: Product, viewModel: MainViewModel) {
                                 searchName = searchName,
                                 imageUrl = editImageUrl.ifBlank { null }?.let { com.example.util.ImageUrlHelper.normalizeUrl(it) }
                             )
-                            viewModel.updateProductSuspend(product, newProduct)
+                            val success = viewModel.updateProductSuspend(product, newProduct)
                             isSaving = false
-                            isEditing = false
+                            if (success) {
+                                isEditing = false
+                            }
                         }
                     },
                     modifier = Modifier.align(Alignment.End),

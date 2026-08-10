@@ -41,9 +41,9 @@ object FirebaseService {
         }
     }
 
-    suspend fun saveProduct(product: com.example.data.Product) {
-        if (!isFirebaseConfigured()) return
-        try {
+        suspend fun saveProduct(product: com.example.data.Product): Boolean {
+        if (!isFirebaseConfigured()) return false
+        return try {
             val firestore = FirebaseFirestore.getInstance()
             firestore.collection("products").document(product.code)
                 .set(mapOf(
@@ -56,19 +56,24 @@ object FirebaseService {
                     "searchCount" to product.searchCount,
                     "timestamp" to System.currentTimeMillis()
                 )).await()
-            
+            Log.d("ProductSync", "Produto salvo no Firestore: ${product.code}")
+            true
         } catch (e: Exception) {
-            Log.e("FirebaseService", "Error saving product", e)
+            Log.e("ProductSync", "Erro ao salvar no Firestore: ${product.code}", e)
+            false
         }
     }
-    
-    suspend fun deleteProduct(code: String) {
-        if (!isFirebaseConfigured()) return
-        try {
+        
+    suspend fun deleteProduct(code: String): Boolean {
+        if (!isFirebaseConfigured()) return false
+        return try {
             val firestore = FirebaseFirestore.getInstance()
             firestore.collection("products").document(code).delete().await()
+            Log.d("ProductSync", "Produto excluído do Firestore: $code")
+            true
         } catch (e: Exception) {
-            Log.e("FirebaseService", "Error deleting product", e)
+            Log.e("ProductSync", "Erro ao excluir do Firestore: $code", e)
+            false
         }
     }
 

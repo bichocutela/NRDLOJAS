@@ -108,12 +108,10 @@ class ProductRepository(
 
     suspend fun insertProduct(product: Product) {
         dao.insertProduct(product)
-        FirebaseService.saveProduct(product)
     }
 
     suspend fun updateProduct(product: Product) {
         dao.updateProduct(product)
-        FirebaseService.saveProduct(product)
     }
 
     suspend fun populateInitialDataIfNeeded() {
