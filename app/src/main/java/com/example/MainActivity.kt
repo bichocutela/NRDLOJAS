@@ -46,7 +46,9 @@ import com.example.ui.MainViewModel
 import com.example.ui.MainViewModelFactory
 import com.example.ui.theme.MyApplicationTheme
 
+import com.google.firebase.messaging.FirebaseMessaging
 import com.example.util.NotificationHelper
+
 
 class MainActivity : ComponentActivity() {
 
@@ -69,7 +71,20 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
         super.onCreate(savedInstanceState)
+        
+        try {
+            FirebaseMessaging.getInstance().subscribeToTopic("products")
+                .addOnCompleteListener { task ->
+                    if (!task.isSuccessful) {
+                        android.util.Log.e("FCM", "Failed to subscribe to topic")
+                    }
+                }
+        } catch(e: Exception) {
+            android.util.Log.e("FCM", "Firebase not configured")
+        }
+
         com.example.data.FirebaseService.initialize(this)
 
         val crashLog = CrashReporter.getCrashLog(this)
@@ -118,23 +133,7 @@ class MainActivity : ComponentActivity() {
             val lastNotifiedCode by userPreferences.lastNotifiedProductCode.collectAsState("___LOADING___")
             val context = androidx.compose.ui.platform.LocalContext.current
             
-            LaunchedEffect(latestFirebase, lastNotifiedCode) {
-                if (lastNotifiedCode == "___LOADING___") return@LaunchedEffect
-                
-                val dispName = latestFirebase?.get("name")?.toString()
-                val eventId = latestFirebase?.get("timestamp")?.toString() ?: latestFirebase?.get("code")?.toString()
-                val type = latestFirebase?.get("type")?.toString() ?: "NEW_PRODUCT"
-                val oldName = latestFirebase?.get("oldName")?.toString() ?: ""
 
-                if (dispName != null && eventId != null && eventId != lastNotifiedCode) {
-                    if (lastNotifiedCode == null) {
-                        userPreferences.setLastNotifiedProductCode(eventId)
-                    } else {
-                        com.example.util.NotificationHelper.showProductEventNotification(context, type, dispName, oldName)
-                        userPreferences.setLastNotifiedProductCode(eventId)
-                    }
-                }
-            }
             val currentDensity = LocalDensity.current
             val customDensity = androidx.compose.ui.unit.Density(
                 density = currentDensity.density,

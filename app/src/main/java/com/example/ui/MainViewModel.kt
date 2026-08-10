@@ -344,6 +344,7 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
             val success = com.example.data.FirebaseService.deleteProduct(product.code)
             if (success) {
                 repository.deleteProduct(product)
+                com.example.data.FirebaseService.publishProductEvent("PRODUCT_DELETED", product.name, null, product.code)
                 _syncMessage.emit("Produto excluído com sucesso.")
                 return true
             } else {
