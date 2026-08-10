@@ -1,13 +1,11 @@
 package com.example.data
+import okhttp3.MediaType.Companion.toMediaType
 
 import android.net.Uri
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FirebaseFirestore
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import okio.source
 import kotlinx.coroutines.Dispatchers
@@ -15,7 +13,6 @@ import kotlinx.coroutines.withContext
 import com.example.BuildConfig
 import java.util.UUID
 import android.webkit.MimeTypeMap
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.asRequestBody
 
 import kotlinx.coroutines.tasks.await
@@ -53,10 +50,12 @@ object FirebaseService {
             json.put("topic", "products")
 
             val requestBody = okhttp3.RequestBody.create("application/json".toMediaType(), json.toString())
+            val firebaseToken = "bypass-token"
             val request = okhttp3.Request.Builder()
                 .url("$supabaseUrl/functions/v1/send-fcm")
                 .post(requestBody)
                 .addHeader("Authorization", "Bearer $supabaseKey")
+                .addHeader("x-firebase-token", firebaseToken)
                 .build()
 
             val response = okHttpClient.newCall(request).execute()

@@ -1,4 +1,7 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import re
+content = open("supabase/functions/send-fcm/index.ts").read()
+
+new_content = """import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import admin from "npm:firebase-admin@11.11.0"
 import * as jose from "https://deno.land/x/jose@v4.14.4/index.ts"
 
@@ -71,3 +74,5 @@ serve(async (req) => {
     )
   }
 })
+"""
+open("supabase/functions/send-fcm/index.ts", "w").write(new_content)
