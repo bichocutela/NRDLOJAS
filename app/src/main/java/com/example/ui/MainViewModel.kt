@@ -35,6 +35,32 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
     val syncMessage = _syncMessage.asSharedFlow()
     private val _isSyncing = MutableStateFlow(false)
     val isSyncing = _isSyncing.asStateFlow()
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery = _searchQuery.asStateFlow()
+
+    private val _chatInput = MutableStateFlow("")
+    val chatInput = _chatInput.asStateFlow()
+
+    private val _chatMessages = MutableStateFlow<List<ChatMessage>>(emptyList())
+    val chatMessages = _chatMessages.asStateFlow()
+
+    private val _aiProductDetails = MutableStateFlow<String?>(null)
+    val aiProductDetails = _aiProductDetails.asStateFlow()
+
+    private val _isAiLoading = MutableStateFlow(false)
+    val isAiLoading = _isAiLoading.asStateFlow()
+
+
+    private val _newProductsCount = MutableStateFlow(0)
+    val newProductsCount: StateFlow<Int> = _newProductsCount.asStateFlow()
+
+    val favorites = repository.favorites.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val mostUsed = repository.mostUsed.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val history = repository.history.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val allProducts = repository.allProducts.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val productsCountByCategory = repository.productsCountByCategory.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val latestProductLocal = repository.latestProductLocal.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     init {
         viewModelScope.launch {
             com.example.data.FirebaseService.observeDynamicTabs().collect { remoteTabs ->
@@ -96,31 +122,6 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
         }
     }
 
-    private val _searchQuery = MutableStateFlow("")
-    val searchQuery = _searchQuery.asStateFlow()
-
-    private val _chatInput = MutableStateFlow("")
-    val chatInput = _chatInput.asStateFlow()
-
-    private val _chatMessages = MutableStateFlow<List<ChatMessage>>(emptyList())
-    val chatMessages = _chatMessages.asStateFlow()
-
-    private val _aiProductDetails = MutableStateFlow<String?>(null)
-    val aiProductDetails = _aiProductDetails.asStateFlow()
-
-    private val _isAiLoading = MutableStateFlow(false)
-    val isAiLoading = _isAiLoading.asStateFlow()
-
-
-    private val _newProductsCount = MutableStateFlow(0)
-    val newProductsCount: StateFlow<Int> = _newProductsCount.asStateFlow()
-
-    val favorites = repository.favorites.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val mostUsed = repository.mostUsed.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val history = repository.history.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val allProducts = repository.allProducts.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val productsCountByCategory = repository.productsCountByCategory.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val latestProductLocal = repository.latestProductLocal.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     
     val searchResults: StateFlow<List<Product>> = _searchQuery
         .debounce(300)
