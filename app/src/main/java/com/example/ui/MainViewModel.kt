@@ -346,10 +346,8 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
                 return false
             }
         } else {
-            repository.insertProduct(product)
-            _syncMessage.emit("Salvo apenas localmente (Nuvem não configurada)")
-            _newProductsCount.value += 1
-            return true
+            _syncMessage.emit("Não foi possível publicar o produto. Verifique a conexão e tente novamente.")
+            return false
         }
     }
     
