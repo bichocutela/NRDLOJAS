@@ -910,8 +910,6 @@ fun generateBarcodeBitmap(data: String): ImageBitmap? {
 
 @Composable
 fun ThemeBanner(appTheme: String) {
-    val context = LocalContext.current
-
     val normalizedTheme = when (appTheme.trim().lowercase()) {
         "gold" -> "gold"
         "green" -> "green"
@@ -920,39 +918,14 @@ fun ThemeBanner(appTheme: String) {
         else -> "red"
     }
 
-    val assetName = "themes/theme_${normalizedTheme}.jpg"
-    val fallbackAssetName = "themes/theme_red.jpg"
+    val imageUrl = "https://kkayksyzksexoarpfxyj.supabase.co/storage/v1/object/public/nrdlojas-images/themes/theme_${normalizedTheme}.jpg"
 
-    val bitmap = remember(normalizedTheme) {
-        var b = runCatching {
-            context.assets.open(assetName).use { input ->
-                android.graphics.BitmapFactory.decodeStream(input)
-            }
-        }.getOrNull()
-        
-        if (b == null) {
-            b = runCatching {
-                context.assets.open(fallbackAssetName).use { input ->
-                    android.graphics.BitmapFactory.decodeStream(input)
-                }
-            }.getOrNull()
-        }
-        b
-    }
-
-    if (bitmap != null) {
-        Image(
-            bitmap = bitmap.asImageBitmap(),
-            contentDescription = "Banner do tema $normalizedTheme",
-            modifier = Modifier
-                .fillMaxSize(),
-            contentScale = ContentScale.FillWidth
-        )
-    } else {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.primaryContainer)
-        )
-    }
+    AsyncImage(
+        model = imageUrl,
+        contentDescription = "Banner do tema $normalizedTheme",
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.primaryContainer),
+        contentScale = ContentScale.FillWidth
+    )
 }
