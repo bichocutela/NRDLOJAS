@@ -98,6 +98,7 @@ class ProductRepository(
         }
         dao.insertProducts(updatedProducts)
     }
+
     suspend fun deleteProduct(product: Product) {
         dao.deleteProduct(product)
     }
@@ -117,6 +118,7 @@ class ProductRepository(
     suspend fun populateInitialDataIfNeeded() {
         // Removido para forçar o download da nuvem (instalação nova)
     }
+}
 
 fun String.unaccent(): String {
     val regex = "\\p{InCombiningDiacriticalMarks}+".toRegex()
@@ -165,5 +167,4 @@ fun levenshtein(lhs: CharSequence, rhs: CharSequence): Int {
         newCost = swap
     }
     return cost[lhsLength - 1]
-}
 }
