@@ -41,7 +41,19 @@ object FirebaseService {
         }
     }
 
-        suspend fun saveProduct(product: com.example.data.Product): Boolean {
+    suspend fun productExists(code: String): Boolean {
+        if (!isFirebaseConfigured()) return false
+        return try {
+            val firestore = FirebaseFirestore.getInstance()
+            val doc = firestore.collection("products").document(code).get().await()
+            doc.exists()
+        } catch (e: Exception) {
+            Log.e("ProductSync", "Erro ao verificar existência do produto: $code", e)
+            false
+        }
+    }
+
+    suspend fun saveProduct(product: com.example.data.Product): Boolean {
         if (!isFirebaseConfigured()) return false
         return try {
             val firestore = FirebaseFirestore.getInstance()

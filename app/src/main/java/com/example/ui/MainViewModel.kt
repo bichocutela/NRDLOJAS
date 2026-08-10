@@ -241,9 +241,21 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
 
     fun getProductsByCategory(category: String) = repository.getProductsByCategory(category)
 
-        suspend fun updateProductSuspend(oldProduct: Product, newProduct: Product): Boolean {
+    suspend fun updateProductSuspend(oldProduct: Product, newProduct: Product): Boolean {
         var finalProduct = newProduct
         finalProduct = finalProduct.copy(id = oldProduct.id)
+        
+        if (com.example.data.FirebaseService.isFirebaseConfigured()) {
+            if (oldProduct.code != newProduct.code) {
+                android.util.Log.d("ProductSync", "Verificando se o novo código já existe: ${newProduct.code}")
+                val exists = com.example.data.FirebaseService.productExists(newProduct.code)
+                if (exists) {
+                    android.util.Log.e("ProductSync", "Código já existe: ${newProduct.code}")
+                    _syncMessage.emit("Já existe outro produto com esse código.")
+                    return false
+                }
+            }
+        }
 
         if (newProduct.imageUrl?.startsWith("content://") == true) {
             android.util.Log.d("ProductSync", "Iniciando upload de imagem para alteração: ${newProduct.code}")
@@ -267,7 +279,16 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
                     android.util.Log.d("ProductSync", "Código alterado de ${oldProduct.code} para ${finalProduct.code}. Excluindo antigo.")
                     val deleteSuccess = com.example.data.FirebaseService.deleteProduct(oldProduct.code)
                     if (!deleteSuccess) {
-                        android.util.Log.e("ProductSync", "Erro ao excluir documento antigo: ${oldProduct.code}")
+                        android.util.Log.e("ProductSync", "Erro ao excluir documento antigo: ${oldProduct.code}. Iniciando rollback.")
+                        val rollbackSuccess = com.example.data.FirebaseService.deleteProduct(finalProduct.code)
+                        if (rollbackSuccess) {
+                            android.util.Log.e("ProductSync", "Rollback com sucesso para: ${finalProduct.code}")
+                            _syncMessage.emit("Não foi possível alterar o código. Tente novamente.")
+                        } else {
+                            android.util.Log.e("ProductSync", "Erro crítico: rollback falhou para: ${finalProduct.code}")
+                            _syncMessage.emit("Erro ao concluir a alteração do código. Tente novamente.")
+                        }
+                        return false
                     }
                 }
                 
@@ -278,8 +299,11 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
                     oldProduct.code != finalProduct.code && oldProduct.name != finalProduct.name -> "INFO_CHANGED"
                     oldProduct.code != finalProduct.code -> "CODE_CHANGED"
                     oldProduct.name != finalProduct.name -> "NAME_CHANGED"
-                    else -> "INFO_CHANGED"
+                    else -> "INFO_CHANGED" // Fallback se não for CODE_CHANGED nem NAME_CHANGED
                 }
+                // Ajustar fallback para ser mais exato ou não? O código antigo enviava INFO_CHANGED se ==, let's keep it.
+                // Na vdd a instrução diz "Se alterar apenas nome -> NAME_CHANGED, se código -> CODE_CHANGED, etc."
+                // Se alterar ambos -> INFO_CHANGED.
                 
                 android.util.Log.d("ProductSync", "Publicando evento: $type")
                 com.example.data.FirebaseService.publishProductEvent(type, finalProduct.name, oldProduct.name, finalProduct.code)
@@ -296,7 +320,6 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
             return true
         }
     }
-    
     fun updateProduct(oldProduct: Product, newProduct: Product) {
         viewModelScope.launch {
             updateProductSuspend(oldProduct, newProduct)
