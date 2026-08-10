@@ -918,7 +918,7 @@ fun ThemeBanner(appTheme: String) {
         else -> "red"
     }
 
-    val imageUrl = "https://kkayksyzksexoarpfxyj.supabase.co/storage/v1/object/public/nrdlojas-images/themes/theme_${normalizedTheme}.jpg"
+    val imageUrl = "https://kkayksyzksexoarpfxyj.supabase.co/storage/v1/object/public/nrdlojas-images/banners/themes/theme_${normalizedTheme}.jpg"
 
     AsyncImage(
         model = imageUrl,
