@@ -334,9 +334,8 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
                 return false
             }
         } else {
-            repository.updateProduct(updatedProduct)
-            _syncMessage.emit("Foto removida apenas localmente.")
-            return true
+            _syncMessage.emit("Não foi possível remover a foto. Verifique a conexão e tente novamente.")
+            return false
         }
     }
 
@@ -352,9 +351,8 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
                 return false
             }
         } else {
-            repository.deleteProduct(product)
-            _syncMessage.emit("Produto excluído localmente (nuvem não configurada).")
-            return true
+            _syncMessage.emit("Não foi possível excluir o produto. Verifique a conexão e tente novamente.")
+            return false
         }
     }
 
