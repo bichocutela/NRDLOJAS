@@ -178,7 +178,6 @@ object FirebaseService {
 
     fun observeProducts(): Flow<List<com.example.data.Product>> = callbackFlow {
         if (!isFirebaseConfigured()) {
-            trySend(emptyList())
             close()
             return@callbackFlow
         }
@@ -186,7 +185,7 @@ object FirebaseService {
         val registration = firestore.collection("products")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    trySend(emptyList())
+                    Log.e("FirebaseService", "Error in observeProducts", error)
                     return@addSnapshotListener
                 }
                 if (snapshot != null) {
@@ -224,7 +223,7 @@ object FirebaseService {
         val registration = firestore.collection("latest_product").document("latest")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    trySend(null)
+                    Log.e("FirebaseService", "Error in observeProducts", error)
                     return@addSnapshotListener
                 }
                 if (snapshot != null && snapshot.exists()) {
@@ -390,8 +389,7 @@ object FirebaseService {
         val registration = firestore.collection("config").document("appSettings")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    Log.e("FirebaseService", "Listen failed.", error)
-                    trySend(null)
+                    Log.e("FirebaseService", "Error in observeProducts", error)
                     return@addSnapshotListener
                 }
                 
@@ -441,7 +439,6 @@ object FirebaseService {
 
     fun observeDynamicTabs(): Flow<List<com.example.data.DynamicTab>> = callbackFlow {
         if (!isFirebaseConfigured()) {
-            trySend(emptyList())
             close()
             return@callbackFlow
         }
@@ -449,7 +446,7 @@ object FirebaseService {
         val registration = firestore.collection("dynamic_tabs")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    trySend(emptyList())
+                    Log.e("FirebaseService", "Error in observeProducts", error)
                     return@addSnapshotListener
                 }
                 if (snapshot != null) {

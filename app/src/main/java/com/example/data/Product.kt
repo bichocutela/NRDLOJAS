@@ -8,7 +8,7 @@ import androidx.room.Index
     tableName = "products",
     indices = [
         Index(value = ["searchName"]),
-        Index(value = ["code"]),
+        Index(value = ["code"], unique = true),
         Index(value = ["category"])
     ]
 )

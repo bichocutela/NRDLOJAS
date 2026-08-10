@@ -60,7 +60,7 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
         }
         viewModelScope.launch {
             com.example.data.FirebaseService.observeProducts().collect { remoteProducts ->
-                if (remoteProducts.isNotEmpty()) {
+                
                     val localProducts = repository.getAllProductsSync()
                     val remoteIds = remoteProducts.map { it.code }.toSet()
                     val toDelete = localProducts.filter { it.code !in remoteIds }
@@ -69,14 +69,19 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
                         repository.deleteProducts(toDelete)
                     }
                     
-                    val missingOrUpdated = remoteProducts.filter { remote ->
+                    val missingOrUpdated = remoteProducts.mapNotNull { remote ->
                         val local = localProducts.find { it.code == remote.code }
-                        local == null || local.name != remote.name || local.imageUrl != remote.imageUrl || local.category != remote.category || local.unit != remote.unit
+                        if (local == null) {
+                            remote
+                        } else if (local.name != remote.name || local.imageUrl != remote.imageUrl || local.category != remote.category || local.unit != remote.unit) {
+                            remote.copy(id = local.id, searchCount = local.searchCount, lastSearchedAt = local.lastSearchedAt, isFavorite = local.isFavorite)
+                        } else {
+                            null
+                        }
                     }
                     if (missingOrUpdated.isNotEmpty() && !_isSyncing.value) {
                         repository.insertProducts(missingOrUpdated)
-                    }
-                }
+            }
             }
         }
         viewModelScope.launch {
@@ -430,7 +435,7 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
             }
             try {
                 val remoteProducts = com.example.data.FirebaseService.getAllProducts()
-                if (remoteProducts.isNotEmpty()) {
+                
                     val localProducts = repository.getAllProductsSync()
                     val remoteIds = remoteProducts.map { it.code }.toSet()
                     val toDelete = localProducts.filter { it.code !in remoteIds }
@@ -439,14 +444,19 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
                         repository.deleteProducts(toDelete)
                     }
                     
-                    val missingOrUpdated = remoteProducts.filter { remote ->
+                    val missingOrUpdated = remoteProducts.mapNotNull { remote ->
                         val local = localProducts.find { it.code == remote.code }
-                        local == null || local.name != remote.name || local.imageUrl != remote.imageUrl || local.category != remote.category || local.unit != remote.unit
+                        if (local == null) {
+                            remote
+                        } else if (local.name != remote.name || local.imageUrl != remote.imageUrl || local.category != remote.category || local.unit != remote.unit) {
+                            remote.copy(id = local.id, searchCount = local.searchCount, lastSearchedAt = local.lastSearchedAt, isFavorite = local.isFavorite)
+                        } else {
+                            null
+                        }
                     }
                     if (missingOrUpdated.isNotEmpty()) {
                         repository.insertProducts(missingOrUpdated)
                     }
-                }
             } catch (e: Exception) {
                 // Ignore
             } finally {
