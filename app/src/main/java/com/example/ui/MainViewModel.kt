@@ -29,6 +29,12 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
 
     private val _latestProduct = MutableStateFlow<Map<String, Any>?>(null)
     val latestProduct = _latestProduct.asStateFlow()
+    
+    private var isSyncingTabs = false
+    private val _syncMessage = MutableSharedFlow<String>()
+    val syncMessage = _syncMessage.asSharedFlow()
+    private val _isSyncing = MutableStateFlow(false)
+    val isSyncing = _isSyncing.asStateFlow()
     init {
         viewModelScope.launch {
             com.example.data.FirebaseService.observeDynamicTabs().collect { remoteTabs ->
@@ -341,10 +347,6 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
         }
     }
 
-
-    private val _syncMessage = MutableSharedFlow<String>()
-    val syncMessage = _syncMessage.asSharedFlow()
-
         suspend fun addProductSuspend(name: String, code: String, category: String, unit: String, imageUrl: String? = null): Boolean {
         var finalImageUrl = imageUrl
         if (imageUrl?.startsWith("content://") == true) {
@@ -394,8 +396,6 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
             addProductSuspend(name, code, category, unit, imageUrl)
         }
     }
-    private val _isSyncing = MutableStateFlow(false)
-    val isSyncing = _isSyncing.asStateFlow()
     
     fun syncProductsFromFirebase() {
         viewModelScope.launch {
@@ -443,9 +443,6 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
     }
     val dynamicTabs: kotlinx.coroutines.flow.StateFlow<List<com.example.data.DynamicTab>> = repository.getAllTabs()
         .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), emptyList())
-
-
-    private var isSyncingTabs = false
 
     fun insertTab(tab: com.example.data.DynamicTab) = viewModelScope.launch {
         isSyncingTabs = true
