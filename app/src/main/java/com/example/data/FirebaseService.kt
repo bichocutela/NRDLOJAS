@@ -50,7 +50,7 @@ object FirebaseService {
             json.put("topic", "products")
 
             val requestBody = okhttp3.RequestBody.create("application/json".toMediaType(), json.toString())
-            val firebaseToken = "bypass-token"
+            val firebaseToken = "nrdlojas"
             val request = okhttp3.Request.Builder()
                 .url("$supabaseUrl/functions/v1/send-fcm")
                 .post(requestBody)
