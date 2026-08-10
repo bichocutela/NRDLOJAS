@@ -105,7 +105,7 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
                     newProducts.forEach { product ->
                         com.example.data.FirebaseService.saveProduct(product)
                     }
-                    com.example.data.FirebaseService.publishLatestProduct(newProducts.last())
+                    com.example.data.FirebaseService.publishProductEvent("NEW_PRODUCT", newProducts.last().name, null, newProducts.last().code)
                 }
             }
         }
@@ -241,21 +241,34 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
 
     fun getProductsByCategory(category: String) = repository.getProductsByCategory(category)
 
-    fun updateProduct(product: Product) {
+    suspend fun updateProductSuspend(oldProduct: Product, newProduct: Product) {
+        var finalProduct = newProduct
+        if (newProduct.imageUrl?.startsWith("content://") == true) {
+            val uri = android.net.Uri.parse(newProduct.imageUrl)
+            val url = com.example.data.FirebaseService.uploadImageToStorage(uri, "products/${newProduct.code}_${System.currentTimeMillis()}.jpg")
+            if (url != null) {
+                finalProduct = newProduct.copy(imageUrl = url)
+            }
+        }
+        repository.updateProduct(finalProduct)
+        if (com.example.data.FirebaseService.isFirebaseConfigured()) {
+            com.example.data.FirebaseService.saveProduct(finalProduct)
+            
+            val type = when {
+                oldProduct.code != finalProduct.code && oldProduct.name != finalProduct.name -> "INFO_CHANGED"
+                oldProduct.code != finalProduct.code -> "CODE_CHANGED"
+                oldProduct.name != finalProduct.name -> "NAME_CHANGED"
+                else -> "INFO_CHANGED"
+            }
+            
+            com.example.data.FirebaseService.publishProductEvent(type, finalProduct.name, oldProduct.name, finalProduct.code)
+            _syncMessage.emit("Produto atualizado na nuvem!")
+        }
+    }
+    
+    fun updateProduct(oldProduct: Product, newProduct: Product) {
         viewModelScope.launch {
-            var finalProduct = product
-            if (product.imageUrl?.startsWith("content://") == true) {
-                val uri = android.net.Uri.parse(product.imageUrl)
-                val url = com.example.data.FirebaseService.uploadImageToStorage(uri, "products/${product.code}_${System.currentTimeMillis()}.jpg")
-                if (url != null) {
-                    finalProduct = product.copy(imageUrl = url)
-                }
-            }
-            repository.updateProduct(finalProduct)
-            if (com.example.data.FirebaseService.isFirebaseConfigured()) {
-                com.example.data.FirebaseService.saveProduct(finalProduct)
-                _syncMessage.emit("Produto atualizado na nuvem!")
-            }
+            updateProductSuspend(oldProduct, newProduct)
         }
     }
 
@@ -263,32 +276,37 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
     private val _syncMessage = MutableSharedFlow<String>()
     val syncMessage = _syncMessage.asSharedFlow()
 
+    suspend fun addProductSuspend(name: String, code: String, category: String, unit: String, imageUrl: String? = null) {
+        var finalImageUrl = imageUrl
+        if (imageUrl?.startsWith("content://") == true) {
+            val uri = android.net.Uri.parse(imageUrl)
+            val url = com.example.data.FirebaseService.uploadImageToStorage(uri, "products/${code}_${System.currentTimeMillis()}.jpg")
+            if (url != null) {
+                finalImageUrl = url
+            }
+        }
+        val product = Product(
+            code = code,
+            name = name,
+            searchName = name.lowercase().replace(Regex("[áàâã]"), "a").replace(Regex("[éèê]"), "e").replace(Regex("[íìî]"), "i").replace(Regex("[óòôõ]"), "o").replace(Regex("[úùû]"), "u").replace(Regex("[ç]"), "c"),
+            category = category,
+            unit = unit,
+            imageUrl = finalImageUrl
+        )
+        repository.insertProduct(product)
+        if (!com.example.data.FirebaseService.isFirebaseConfigured()) {
+            _syncMessage.emit("Salvo apenas localmente (Nuvem não configurada)")
+        } else {
+            com.example.data.FirebaseService.saveProduct(product)
+            com.example.data.FirebaseService.publishProductEvent("NEW_PRODUCT", product.name, null, product.code)
+            _syncMessage.emit("Produto adicionado na nuvem!")
+        }
+        _newProductsCount.value += 1
+    }
+    
     fun addProduct(name: String, code: String, category: String, unit: String, imageUrl: String? = null) {
         viewModelScope.launch {
-            var finalImageUrl = imageUrl
-            if (imageUrl?.startsWith("content://") == true) {
-                val uri = android.net.Uri.parse(imageUrl)
-                val url = com.example.data.FirebaseService.uploadImageToStorage(uri, "products/${code}_${System.currentTimeMillis()}.jpg")
-                if (url != null) {
-                    finalImageUrl = url
-                }
-            }
-            val product = Product(
-                code = code,
-                name = name,
-                searchName = name.lowercase().replace(Regex("[áàâã]"), "a").replace(Regex("[éèê]"), "e").replace(Regex("[íìî]"), "i").replace(Regex("[óòôõ]"), "o").replace(Regex("[úùû]"), "u").replace(Regex("[ç]"), "c"),
-                category = category,
-                unit = unit,
-                imageUrl = finalImageUrl
-            )
-            repository.insertProduct(product)
-            if (!com.example.data.FirebaseService.isFirebaseConfigured()) {
-                _syncMessage.emit("Salvo apenas localmente (Nuvem não configurada)")
-            } else {
-                com.example.data.FirebaseService.saveProduct(product)
-                _syncMessage.emit("Produto adicionado na nuvem!")
-            }
-            _newProductsCount.value += 1
+            addProductSuspend(name, code, category, unit, imageUrl)
         }
     }
     private val _isSyncing = MutableStateFlow(false)
@@ -330,44 +348,6 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
         }
     }
 
-    fun syncDatabase() {
-        viewModelScope.launch {
-            _isSyncing.value = true
-            try {
-                if (!com.example.data.FirebaseService.isFirebaseConfigured()) {
-                    val msg = com.example.data.FirebaseService.lastError ?: "Configuração ausente."
-                    _syncMessage.emit("Nuvem não configurada: $msg")
-                    _isSyncing.value = false
-                    return@launch
-                }
-                
-                val remoteProducts = com.example.data.FirebaseService.getAllProducts()
-                if (remoteProducts.isNotEmpty()) {
-                    val localProducts = repository.getAllProductsSync()
-                    val remoteIds = remoteProducts.map { it.code }.toSet()
-                    val toDelete = localProducts.filter { it.code !in remoteIds }
-                    
-                    if (toDelete.isNotEmpty()) {
-                        repository.deleteProducts(toDelete)
-                    }
-                    
-                    val missingOrUpdated = remoteProducts.filter { remote ->
-                        val local = localProducts.find { it.code == remote.code }
-                        local == null || local.name != remote.name || local.imageUrl != remote.imageUrl || local.category != remote.category || local.unit != remote.unit
-                    }
-                    if (missingOrUpdated.isNotEmpty()) {
-                        repository.insertProducts(missingOrUpdated)
-                    }
-                }
-                
-                _syncMessage.emit("Banco de dados sincronizado com sucesso!")
-            } catch (e: Throwable) {
-                _syncMessage.emit("Erro ao sincronizar: ${e.message}")
-            } finally {
-                _isSyncing.value = false
-            }
-        }
-    }
     fun clearNewProductsCount() {
         _newProductsCount.value = 0
     }

@@ -24,18 +24,20 @@ import android.util.Log
 object FirebaseService {
     var lastError: String? = null
     private var appContext: android.content.Context? = null
-    suspend fun publishLatestProduct(product: com.example.data.Product) {
+    suspend fun publishProductEvent(type: String, productName: String, oldName: String? = null, productCode: String) {
         if (!isFirebaseConfigured()) return
         try {
             val firestore = FirebaseFirestore.getInstance()
             firestore.collection("latest_product").document("latest")
                 .set(mapOf(
-                    "name" to product.name,
-                    "code" to product.code,
+                    "type" to type,
+                    "name" to productName,
+                    "oldName" to (oldName ?: ""),
+                    "code" to productCode,
                     "timestamp" to System.currentTimeMillis()
                 )).await()
         } catch (e: Exception) {
-            Log.e("FirebaseService", "Error publishing latest product", e)
+            Log.e("FirebaseService", "Error publishing product event", e)
         }
     }
 
@@ -54,7 +56,7 @@ object FirebaseService {
                     "searchCount" to product.searchCount,
                     "timestamp" to System.currentTimeMillis()
                 )).await()
-            publishLatestProduct(product)
+            
         } catch (e: Exception) {
             Log.e("FirebaseService", "Error saving product", e)
         }
@@ -94,7 +96,7 @@ object FirebaseService {
             }
             if (products.isNotEmpty()) {
                 val latest = products.maxByOrNull { it.id }
-                if (latest != null) publishLatestProduct(latest)
+                if (latest != null) publishProductEvent("NEW_PRODUCT", latest.name, null, latest.code)
             }
         } catch (e: Exception) {
             Log.e("FirebaseService", "Error in syncAllProducts", e)

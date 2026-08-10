@@ -39,12 +39,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.BuildConfig
 import com.example.api.*
-import com.patrykandpatrick.vico.compose.axis.horizontal.rememberBottomAxis
-import com.patrykandpatrick.vico.compose.axis.vertical.rememberStartAxis
-import com.patrykandpatrick.vico.compose.chart.Chart
-import com.patrykandpatrick.vico.compose.chart.column.columnChart
-import com.patrykandpatrick.vico.core.entry.ChartEntryModelProducer
-import com.patrykandpatrick.vico.core.entry.entryOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -73,17 +67,8 @@ fun AdminScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     
-    val categoryCounts by viewModel.productsCountByCategory.collectAsStateWithLifecycle()
     val allProducts by viewModel.allProducts.collectAsStateWithLifecycle()
     val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
-    val chartEntryModelProducer = remember { ChartEntryModelProducer() }
-    
-    LaunchedEffect(categoryCounts) {
-        val entries = categoryCounts.mapIndexed { index, categoryCount ->
-            entryOf(index.toFloat(), categoryCount.count.toFloat())
-        }
-        chartEntryModelProducer.setEntries(entries)
-    }
 
 
     LaunchedEffect(Unit) {
@@ -158,36 +143,6 @@ fun AdminScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (categoryCounts.isNotEmpty()) {
-                Text(
-                    text = "Dashboard de Inventário",
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Produtos por Categoria",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Chart(
-                            chart = columnChart(),
-                            chartModelProducer = chartEntryModelProducer,
-                            startAxis = rememberStartAxis(),
-                            bottomAxis = rememberBottomAxis(valueFormatter = { value, _ ->
-                                categoryCounts.getOrNull(value.toInt())?.category ?: ""
-                            }),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = {
                         scope.launch {
@@ -206,26 +161,6 @@ fun AdminScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                     Text("Exportar Inventário (PDF)")
                 }
                 Spacer(modifier = Modifier.height(32.dp))
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = { viewModel.syncDatabase() },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isSyncing
-                ) {
-                    if (isSyncing) {
-                        androidx.compose.material3.CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp), 
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Sincronizando...")
-                    } else {
-                        Icon(Icons.Default.Sync, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Sincronizar Banco de Dados")
-                    }
-                }
-            }
             
             Text(
                 text = "Adicionar Novo Produto",
@@ -316,42 +251,77 @@ fun AdminScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                             modifier = Modifier.fillMaxWidth()
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = productImageUrl,
-                            onValueChange = { productImageUrl = it },
-                            label = { Text("URL da Imagem (Google Drive, etc)") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        val manualLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                            contract = androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()
+                        ) { uri ->
+                            uri?.let {
+                                try {
+                                    val flag = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                    context.contentResolver.takePersistableUriPermission(it, flag)
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                                productImageUrl = it.toString()
+                            }
+                        }
+                        Button(
+                            onClick = {
+                                manualLauncher.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly))
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+                        ) {
+                            Icon(Icons.Default.AddAPhoto, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("ADICIONAR FOTO (OPCIONAL)", color = MaterialTheme.colorScheme.primary)
+                        }
+                        if (productImageUrl.isNotBlank()) {
+                            Text(text = "Foto selecionada", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(top = 4.dp))
+                        }
                         
                         Spacer(modifier = Modifier.height(24.dp))
                         
-                        Button(
-                            onClick = {
-                                if (productName.isNotBlank() && productCode.isNotBlank()) {
-                                    viewModel.addProduct(
-                                        name = productName,
-                                        code = productCode,
-                                        category = if (productCategory.isNotBlank()) productCategory else "Geral",
-                                        unit = "un",
-                                        imageUrl = productImageUrl.ifBlank { null }?.let { com.example.util.ImageUrlHelper.normalizeUrl(it) }
-                                    )
-                                    // com.example.util.NotificationHelper.showNewProductNotification(context, productName) // Deixando via Firebase para evitar duplicidade
-                                    showManualForm = false
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar("Produto adicionado com sucesso!")
-                                    }
-                                } else {
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar("Preencha o nome e código.")
-                                    }
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(Icons.Default.Save, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("SALVAR PRODUTO")
+                        var isAdding by remember { mutableStateOf(false) }
+                Button(
+                    onClick = {
+                        if (productName.isNotBlank() && productCode.isNotBlank()) {
+                            scope.launch {
+                                isAdding = true
+                                viewModel.addProductSuspend(
+                                    name = productName,
+                                    code = productCode,
+                                    category = if (productCategory.isNotBlank()) productCategory else "Geral",
+                                    unit = "un",
+                                    imageUrl = productImageUrl.ifBlank { null }?.let { com.example.util.ImageUrlHelper.normalizeUrl(it) }
+                                )
+                                showManualForm = false
+                                isAdding = false
+                                snackbarHostState.showSnackbar("Produto adicionado com sucesso!")
+                            }
+                        } else {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Preencha o nome e código.")
+                            }
                         }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isAdding
+                ) {
+                    if (isAdding) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("SALVANDO...")
+                    } else {
+                        Icon(Icons.Default.Save, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("SALVAR PRODUTO")
+                    }
+                }
                     }
                 }
             }
@@ -474,6 +444,7 @@ fun AdminProductItem(product: Product, viewModel: MainViewModel) {
     var isEditing by remember { mutableStateOf(false) }
     var editCode by remember(product.code) { mutableStateOf(product.code) }
     var editName by remember(product.name) { mutableStateOf(product.name) }
+    var editCategory by remember(product.category) { mutableStateOf(product.category) }
     var editImageUrl by remember(product.imageUrl) { mutableStateOf(product.imageUrl ?: "") }
     val context = LocalContext.current
     
@@ -550,33 +521,61 @@ fun AdminProductItem(product: Product, viewModel: MainViewModel) {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
-                    value = editImageUrl,
-                    onValueChange = { editImageUrl = it },
-                    label = { Text("URL da Imagem ou Escolher Foto") },
-                    modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = {
-                        IconButton(onClick = {
-                            launcher.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                        }) {
-                            Icon(Icons.Default.AddAPhoto, contentDescription = "Escolher Foto")
-                        }
-                    }
+                    value = editCategory,
+                    onValueChange = { editCategory = it },
+                    label = { Text("Categoria") },
+                    modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(
                     onClick = {
-                        val searchName = editName.lowercase().replace(Regex("[áàâã]"), "a").replace(Regex("[éèê]"), "e").replace(Regex("[íìî]"), "i").replace(Regex("[óòôõ]"), "o").replace(Regex("[úùû]"), "u").replace(Regex("[ç]"), "c")
-                        viewModel.updateProduct(product.copy(
-                            code = editCode, 
-                            name = editName, 
-                            searchName = searchName,
-                            imageUrl = editImageUrl.ifBlank { null }?.let { com.example.util.ImageUrlHelper.normalizeUrl(it) }
-                        ))
-                        isEditing = false
+                        launcher.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                     },
-                    modifier = Modifier.align(Alignment.End)
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
                 ) {
-                    Text("Salvar")
+                    Icon(Icons.Default.AddAPhoto, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("ADICIONAR/TROCAR FOTO", color = MaterialTheme.colorScheme.primary)
+                }
+                if (editImageUrl.isNotBlank()) {
+                    Text(text = "Foto selecionada", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(top = 4.dp))
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                var isSaving by remember { mutableStateOf(false) }
+                val coroutineScope = rememberCoroutineScope()
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            isSaving = true
+                            val searchName = editName.lowercase().replace(Regex("[áàâã]"), "a").replace(Regex("[éèê]"), "e").replace(Regex("[íìî]"), "i").replace(Regex("[óòôõ]"), "o").replace(Regex("[úùû]"), "u").replace(Regex("[ç]"), "c")
+                            val newProduct = product.copy(
+                                code = editCode, 
+                                name = editName, 
+                                category = editCategory.ifBlank { "Geral" },
+                                searchName = searchName,
+                                imageUrl = editImageUrl.ifBlank { null }?.let { com.example.util.ImageUrlHelper.normalizeUrl(it) }
+                            )
+                            viewModel.updateProductSuspend(product, newProduct)
+                            isSaving = false
+                            isEditing = false
+                        }
+                    },
+                    modifier = Modifier.align(Alignment.End),
+                    enabled = !isSaving
+                ) {
+                    if (isSaving) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Salvando...")
+                    } else {
+                        Text("Salvar")
+                    }
                 }
             } else {
                 Text(text = "Código: ${product.code}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)

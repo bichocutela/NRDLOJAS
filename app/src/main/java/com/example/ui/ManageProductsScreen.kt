@@ -109,14 +109,13 @@ fun ManageProductsScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                 confirmButton = {
                     TextButton(onClick = {
                         if (name.isNotBlank() && code.isNotBlank()) {
-                            viewModel.updateProduct(
-                                editingProduct!!.copy(
-                                    name = name,
-                                    code = code,
-                                    category = category,
-                                    imageUrl = imageUrl.takeIf { it.isNotBlank() }
-                                )
+                            val newProduct = editingProduct!!.copy(
+                                name = name,
+                                code = code,
+                                category = category,
+                                imageUrl = imageUrl.takeIf { it.isNotBlank() }
                             )
+                            viewModel.updateProduct(editingProduct!!, newProduct)
                             showDialog = false
                         }
                     }) {

@@ -74,7 +74,7 @@ fun MestreScreen(
             Spacer(modifier = Modifier.height(32.dp))
             
             Button(
-                onClick = { viewModel.syncDatabase() },
+                onClick = { viewModel.syncProductsFromFirebase() },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isSyncing
             ) {

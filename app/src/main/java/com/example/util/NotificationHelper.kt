@@ -38,7 +38,7 @@ object NotificationHelper {
         }
     }
 
-    fun showNewProductNotification(context: Context, productName: String) {
+    fun showProductEventNotification(context: Context, type: String, productName: String, oldName: String) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ActivityCompat.checkSelfPermission(
                     context,
@@ -49,15 +49,24 @@ object NotificationHelper {
             }
         }
 
+        val title = if (type == "NEW_PRODUCT") "Novo produto adicionado" else "Produto atualizado"
+        val text = when (type) {
+            "NEW_PRODUCT" -> "$productName foi adicionado ao aplicativo."
+            "CODE_CHANGED" -> "O código de $productName foi atualizado."
+            "NAME_CHANGED" -> "$oldName agora aparece como $productName."
+            "INFO_CHANGED" -> "As informações de $productName foram atualizadas."
+            else -> "$productName foi atualizado."
+        }
+
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info) // Fallback icon
-            .setContentTitle("Novo Produto Adicionado!")
-            .setContentText("O produto $productName foi adicionado ao catálogo.")
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle(title)
+            .setContentText(text)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
 
         with(NotificationManagerCompat.from(context)) {
-            notify(NOTIFICATION_ID, builder.build())
+            notify(System.currentTimeMillis().toInt(), builder.build())
         }
     }
 }

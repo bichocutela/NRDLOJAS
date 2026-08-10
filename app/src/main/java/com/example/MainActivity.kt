@@ -123,13 +123,14 @@ class MainActivity : ComponentActivity() {
                 
                 val dispName = latestFirebase?.get("name")?.toString()
                 val eventId = latestFirebase?.get("timestamp")?.toString() ?: latestFirebase?.get("code")?.toString()
-                
+                val type = latestFirebase?.get("type")?.toString() ?: "NEW_PRODUCT"
+                val oldName = latestFirebase?.get("oldName")?.toString() ?: ""
+
                 if (dispName != null && eventId != null && eventId != lastNotifiedCode) {
                     if (lastNotifiedCode == null) {
-                        // Primeiro acesso após instalação: apenas registra o evento atual para não notificar coisas antigas
                         userPreferences.setLastNotifiedProductCode(eventId)
                     } else {
-                        com.example.util.NotificationHelper.showNewProductNotification(context, dispName)
+                        com.example.util.NotificationHelper.showProductEventNotification(context, type, dispName, oldName)
                         userPreferences.setLastNotifiedProductCode(eventId)
                     }
                 }
