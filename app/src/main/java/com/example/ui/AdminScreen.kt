@@ -22,6 +22,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import com.example.data.Product
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -507,6 +509,9 @@ fun AdminProductItem(product: Product, viewModel: MainViewModel) {
                 }
             }
             if (isEditing) {
+                var isSaving by remember { mutableStateOf(false) }
+                var isDeleting by remember { mutableStateOf(false) }
+                val coroutineScope = rememberCoroutineScope()
                 OutlinedTextField(
                     value = editName,
                     onValueChange = { editName = it },
@@ -535,7 +540,8 @@ fun AdminProductItem(product: Product, viewModel: MainViewModel) {
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                    enabled = !isSaving && !isDeleting
                 ) {
                     Icon(Icons.Default.AddAPhoto, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(8.dp))
@@ -545,8 +551,56 @@ fun AdminProductItem(product: Product, viewModel: MainViewModel) {
                     Text(text = "Foto selecionada", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(top = 4.dp))
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                var isSaving by remember { mutableStateOf(false) }
-                val coroutineScope = rememberCoroutineScope()
+
+                
+                var showRemovePhotoDialog by remember { mutableStateOf(false) }
+                if (product.imageUrl != null) {
+                    Button(
+                        onClick = { showRemovePhotoDialog = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                        enabled = !isSaving && !isDeleting
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("EXCLUIR FOTO", color = MaterialTheme.colorScheme.error)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                if (showRemovePhotoDialog) {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { showRemovePhotoDialog = false },
+                        title = { Text("Remover a foto deste produto?") },
+                        text = { Text("A foto será excluída para todos os usuários.") },
+                        confirmButton = {
+                            var isRemovingPhoto by remember { mutableStateOf(false) }
+                            androidx.compose.material3.TextButton(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        isRemovingPhoto = true
+                                        val success = viewModel.removeProductImage(product)
+                                        isRemovingPhoto = false
+                                        if (success) {
+                                            showRemovePhotoDialog = false
+                                            isEditing = false
+                                        }
+                                    }
+                                },
+                                enabled = !isRemovingPhoto
+                            ) {
+                                Text(if (isRemovingPhoto) "Removendo..." else "Remover Foto", color = MaterialTheme.colorScheme.error)
+                            }
+                        },
+                        dismissButton = {
+                            androidx.compose.material3.TextButton(onClick = { showRemovePhotoDialog = false }) {
+                                Text("Cancelar")
+                            }
+                        }
+                    )
+                }
+
                 Button(
                     onClick = {
                         coroutineScope.launch {
@@ -567,7 +621,7 @@ fun AdminProductItem(product: Product, viewModel: MainViewModel) {
                         }
                     },
                     modifier = Modifier.align(Alignment.End),
-                    enabled = !isSaving
+                    enabled = !isSaving && !isDeleting
                 ) {
                     if (isSaving) {
                         androidx.compose.material3.CircularProgressIndicator(
@@ -580,6 +634,53 @@ fun AdminProductItem(product: Product, viewModel: MainViewModel) {
                     } else {
                         Text("Salvar")
                     }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                var showDeleteProductDialog by remember { mutableStateOf(false) }
+                Button(
+                    onClick = { showDeleteProductDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    enabled = !isSaving && !isDeleting
+                ) {
+                    Icon(Icons.Default.DeleteForever, contentDescription = null, tint = MaterialTheme.colorScheme.onError)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("EXCLUIR PRODUTO", color = MaterialTheme.colorScheme.onError)
+                }
+
+                if (showDeleteProductDialog) {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { showDeleteProductDialog = false },
+                        title = { Text("Excluir este produto?") },
+                        text = { Text("Esta ação removerá o produto para todos os usuários.") },
+                        confirmButton = {
+                            androidx.compose.material3.TextButton(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        isDeleting = true
+                                        val success = viewModel.deleteProductSuspend(product)
+                                        isDeleting = false
+                                        if (success) {
+                                            showDeleteProductDialog = false
+                                            isEditing = false
+                                        }
+                                    }
+                                },
+                                enabled = !isDeleting
+                            ) {
+                                Text(if (isDeleting) "Excluindo..." else "Excluir", color = MaterialTheme.colorScheme.error)
+                            }
+                        },
+                        dismissButton = {
+                            androidx.compose.material3.TextButton(onClick = { showDeleteProductDialog = false }) {
+                                Text("Cancelar")
+                            }
+                        }
+                    )
                 }
             } else {
                 Text(text = "Código: ${product.code}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)

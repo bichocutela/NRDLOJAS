@@ -320,6 +320,44 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
             return true
         }
     }
+    suspend fun removeProductImage(product: Product): Boolean {
+        val updatedProduct = product.copy(imageUrl = null)
+        if (com.example.data.FirebaseService.isFirebaseConfigured()) {
+            val success = com.example.data.FirebaseService.saveProduct(updatedProduct)
+            if (success) {
+                repository.updateProduct(updatedProduct)
+                com.example.data.FirebaseService.publishProductEvent("INFO_CHANGED", updatedProduct.name, product.name, updatedProduct.code)
+                _syncMessage.emit("Foto removida com sucesso.")
+                return true
+            } else {
+                _syncMessage.emit("Não foi possível remover a foto.")
+                return false
+            }
+        } else {
+            repository.updateProduct(updatedProduct)
+            _syncMessage.emit("Foto removida apenas localmente.")
+            return true
+        }
+    }
+
+    suspend fun deleteProductSuspend(product: Product): Boolean {
+        if (com.example.data.FirebaseService.isFirebaseConfigured()) {
+            val success = com.example.data.FirebaseService.deleteProduct(product.code)
+            if (success) {
+                repository.deleteProduct(product)
+                _syncMessage.emit("Produto excluído com sucesso.")
+                return true
+            } else {
+                _syncMessage.emit("Não foi possível excluir o produto. Tente novamente.")
+                return false
+            }
+        } else {
+            repository.deleteProduct(product)
+            _syncMessage.emit("Produto excluído localmente (nuvem não configurada).")
+            return true
+        }
+    }
+
     fun updateProduct(oldProduct: Product, newProduct: Product) {
         viewModelScope.launch {
             updateProductSuspend(oldProduct, newProduct)

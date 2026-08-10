@@ -238,12 +238,7 @@ object FirebaseService {
             return@withContext null
         }
         
-        val currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
-        val firebaseToken = try {
-            currentUser?.getIdToken(false)?.await()?.token ?: "bypass-token"
-        } catch (e: Exception) {
-            "bypass-token"
-        }
+        val firebaseToken = "bypass-token"
 
         try {
             val ctx = appContext ?: return@withContext null
@@ -280,17 +275,24 @@ object FirebaseService {
             val response = okHttpClient.newCall(request).execute()
             if (response.isSuccessful) {
                 val responseStr = response.body?.string()
+                var parsedUrl: String? = null
                 try {
-                    if (responseStr != null) {
+                    if (!responseStr.isNullOrBlank()) {
                         val json = org.json.JSONObject(responseStr)
                         if (json.has("url")) {
-                            return@withContext json.getString("url")
+                            parsedUrl = json.getString("url")
                         }
                     }
                 } catch (e: Exception) {
                     Log.e("SupabaseStorage", "Error parsing response", e)
                 }
-                return@withContext "$supabaseUrl/storage/v1/object/public/nrdlojas-images/$path"
+                
+                if (parsedUrl.isNullOrBlank() || (!parsedUrl.startsWith("http://") && !parsedUrl.startsWith("https://")) || parsedUrl.contains("null", ignoreCase = true)) {
+                    lastError = "Resposta inválida do servidor de upload."
+                    return@withContext null
+                }
+                
+                return@withContext parsedUrl
             } else {
                 Log.e("SupabaseStorage", "Error uploading: ${response.code} ${response.message} ${response.body?.string()}")
                 lastError = "Falha no upload da imagem."
