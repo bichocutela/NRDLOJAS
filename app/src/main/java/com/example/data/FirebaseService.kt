@@ -81,7 +81,23 @@ object FirebaseService {
         }
     }
 
+        private suspend fun ensureAuthenticated() {
+        try {
+            val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+            if (auth.currentUser == null) {
+                try {
+                    auth.signInWithEmailAndPassword("admin@nrdlojas.com", "nrdlojas").await()
+                } catch (e: Exception) {
+                    auth.signInAnonymously().await()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("FirebaseService", "Auth falhou", e)
+        }
+    }
+
     suspend fun saveProduct(product: com.example.data.Product): Boolean {
+        ensureAuthenticated()
         if (!isFirebaseConfigured()) return false
         return try {
             val firestore = FirebaseFirestore.getInstance()
@@ -105,6 +121,7 @@ object FirebaseService {
     }
         
     suspend fun deleteProduct(code: String): Boolean {
+        ensureAuthenticated()
         if (!isFirebaseConfigured()) return false
         return try {
             val firestore = FirebaseFirestore.getInstance()
@@ -119,6 +136,7 @@ object FirebaseService {
 
 
     suspend fun syncAllProducts(products: List<com.example.data.Product>) {
+        ensureAuthenticated()
         if (!isFirebaseConfigured()) return
         try {
             val firestore = FirebaseFirestore.getInstance()
