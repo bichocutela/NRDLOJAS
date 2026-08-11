@@ -281,18 +281,10 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
                 android.util.Log.d("ProductSync", "Atualizando Room: ${finalProduct.code}")
                 repository.updateProduct(finalProduct)
                 
-                val type = when {
-                    oldProduct.code != finalProduct.code && oldProduct.name != finalProduct.name -> "INFO_CHANGED"
-                    oldProduct.code != finalProduct.code -> "CODE_CHANGED"
-                    oldProduct.name != finalProduct.name -> "NAME_CHANGED"
-                    else -> "INFO_CHANGED" // Fallback se não for CODE_CHANGED nem NAME_CHANGED
+                if (oldProduct.code != finalProduct.code) {
+                    android.util.Log.d("ProductSync", "Publicando evento: CODE_CHANGED")
+                    com.example.data.FirebaseService.publishProductEvent("CODE_CHANGED", finalProduct.name, null, finalProduct.code)
                 }
-                // Ajustar fallback para ser mais exato ou não? O código antigo enviava INFO_CHANGED se ==, let's keep it.
-                // Na vdd a instrução diz "Se alterar apenas nome -> NAME_CHANGED, se código -> CODE_CHANGED, etc."
-                // Se alterar ambos -> INFO_CHANGED.
-                
-                android.util.Log.d("ProductSync", "Publicando evento: $type")
-                com.example.data.FirebaseService.publishProductEvent(type, finalProduct.name, oldProduct.name, finalProduct.code)
                 _syncMessage.emit("Produto atualizado na nuvem!")
                 return true
             } else {
