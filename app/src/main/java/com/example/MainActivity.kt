@@ -89,6 +89,13 @@ class MainActivity : ComponentActivity() {
 
         val crashLog = CrashReporter.getCrashLog(this)
         if (crashLog != null) {
+            Thread {
+                try {
+                    val encoded = java.net.URLEncoder.encode(crashLog, "UTF-8")
+                    val url = java.net.URL("http://10.0.2.2:8081/?crash=$encoded")
+                    url.openConnection().getInputStream().close()
+                } catch (e: Exception) { }
+            }.start()
             CrashReporter.clearCrashLog(this)
             setContent {
             
@@ -104,6 +111,7 @@ class MainActivity : ComponentActivity() {
             }
             return
         }
+
         
 
         

@@ -1,4 +1,6 @@
 package com.example.ui
+import androidx.compose.ui.composed
+import androidx.compose.ui.composed
 import androidx.compose.ui.layout.ContentScale
 
 import androidx.compose.foundation.background
@@ -191,10 +193,42 @@ val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(i
     }
 
 
+    val aiProductDetails by viewModel.aiProductDetails.collectAsStateWithLifecycle()
+    val isAiLoading by viewModel.isAiLoading.collectAsStateWithLifecycle()
+
+    if (isAiLoading || aiProductDetails != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.clearAiProductDetails() },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Detalhes com IA")
+                }
+            },
+            text = {
+                if (isAiLoading) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    Text(aiProductDetails ?: "")
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.clearAiProductDetails() }) {
+                    Text("Fechar")
+                }
+            }
+        )
+    }
+
+
     val context = LocalContext.current
+
     Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
+            modifier = Modifier.fillMaxSize()
+        ) {
         // App Bar / Header (Hero Image)
         Box(
             modifier = Modifier
@@ -205,7 +239,18 @@ val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(i
                 modifier = Modifier.fillMaxSize()
             ) {
                 ThemeBanner(appTheme = normalizedTheme)
+                Text(
+                    text = "NRD Códigos Correlatos",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 8.dp)
+                )
             }
+            
+            // Hamburger Menu overlay
             IconButton(
                 onClick = {
                     viewModel.clearNewProductsCount()
@@ -294,7 +339,7 @@ val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(i
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(searchResults) { product ->
+                items(searchResults, key = { it.code }) { product ->
                     ProductCard(product, viewModel)
                 }
             }
@@ -315,7 +360,7 @@ val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(i
                             contentPadding = PaddingValues(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            items(mostUsed) { product ->
+                            items(mostUsed, key = { it.code }) { product ->
                                 MiniProductCard(product, viewModel)
                             }
                         }
@@ -351,6 +396,7 @@ val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(i
                     }
                 }
             }
+        }
         }
 
         val onboardingShown by viewModel.userPreferences.onboardingShown.collectAsState(initial = true)
@@ -471,22 +517,6 @@ fun CategorySection(viewModel: MainViewModel) {
 
 @Composable
 fun ProductCard(product: Product, viewModel: MainViewModel) {
-    val vibrateOnClick by viewModel.userPreferences.vibrateOnClick.collectAsState(initial = true)
-    val vibrateOnFound by viewModel.userPreferences.vibrateOnFound.collectAsState(initial = true)
-    val largeText by viewModel.userPreferences.largeText.collectAsState(initial = false)
-    val boldOutline by viewModel.userPreferences.boldOutline.collectAsState(initial = false)
-    val uppercaseBold by viewModel.userPreferences.uppercaseBold.collectAsState(initial = false)
-    val context = LocalContext.current
-    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator }
-    fun triggerVibration() {
-        if (!vibrateOnClick) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator?.vibrate(50)
-        }
-    }
     var showDialog by remember { mutableStateOf(false) }
     if (showDialog) {
         ProductBarcodeDialog(product = product, onDismiss = { showDialog = false })
@@ -498,7 +528,7 @@ fun ProductCard(product: Product, viewModel: MainViewModel) {
             .clip(RoundedCornerShape(24.dp))
             .background(Color.White)
             .border(1.dp, MaterialTheme.colorScheme.surface, RoundedCornerShape(24.dp))
-            .clickable { triggerVibration(); viewModel.onProductSearched(product); showDialog = true }
+            .vibrateClickable(viewModel) { viewModel.onProductSearched(product); showDialog = true }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -574,28 +604,19 @@ fun ProductCard(product: Product, viewModel: MainViewModel) {
             }
         }
 
+        Spacer(modifier = Modifier.width(8.dp))
+        androidx.compose.material3.IconButton(
+            onClick = { viewModel.consultProductInfoAi(product) },
+            modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer, CircleShape)
+        ) {
+            Icon(Icons.Default.AutoAwesome, contentDescription = "IA Info", tint = MaterialTheme.colorScheme.onTertiaryContainer)
+        }
+    }
 }
 
 
 @Composable
 fun MiniProductCard(product: Product, viewModel: MainViewModel) {
-    val vibrateOnClick by viewModel.userPreferences.vibrateOnClick.collectAsState(initial = true)
-    val vibrateOnFound by viewModel.userPreferences.vibrateOnFound.collectAsState(initial = true)
-    val largeText by viewModel.userPreferences.largeText.collectAsState(initial = false)
-    val boldOutline by viewModel.userPreferences.boldOutline.collectAsState(initial = false)
-    val uppercaseBold by viewModel.userPreferences.uppercaseBold.collectAsState(initial = false)
-    val context = LocalContext.current
-    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator }
-    fun triggerVibration() {
-        if (!vibrateOnClick) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator?.vibrate(50)
-        }
-    }
-
     var showDialog by remember { mutableStateOf(false) }
     if (showDialog) {
         ProductBarcodeDialog(product = product, onDismiss = { showDialog = false })
@@ -607,7 +628,7 @@ fun MiniProductCard(product: Product, viewModel: MainViewModel) {
             .clip(RoundedCornerShape(24.dp))
             .background(Color.White)
             .border(1.dp, MaterialTheme.colorScheme.surface, RoundedCornerShape(24.dp))
-            .clickable { triggerVibration(); viewModel.onProductSearched(product); showDialog = true }
+            .vibrateClickable(viewModel) { viewModel.onProductSearched(product); showDialog = true }
             .padding(16.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
@@ -691,23 +712,6 @@ fun MiniProductCard(product: Product, viewModel: MainViewModel) {
 
 @Composable
 fun HistoryItem(product: Product, viewModel: MainViewModel) {
-    val vibrateOnClick by viewModel.userPreferences.vibrateOnClick.collectAsState(initial = true)
-    val vibrateOnFound by viewModel.userPreferences.vibrateOnFound.collectAsState(initial = true)
-    val largeText by viewModel.userPreferences.largeText.collectAsState(initial = false)
-    val boldOutline by viewModel.userPreferences.boldOutline.collectAsState(initial = false)
-    val uppercaseBold by viewModel.userPreferences.uppercaseBold.collectAsState(initial = false)
-    val context = LocalContext.current
-    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator }
-    fun triggerVibration() {
-        if (!vibrateOnClick) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator?.vibrate(50)
-        }
-    }
-
     var showDialog by remember { mutableStateOf(false) }
     if (showDialog) {
         ProductBarcodeDialog(product = product, onDismiss = { showDialog = false })
@@ -718,7 +722,7 @@ fun HistoryItem(product: Product, viewModel: MainViewModel) {
             .clip(RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
             .border(1.dp, MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(16.dp))
-            .clickable { triggerVibration(); showDialog = true }
+            .vibrateClickable(viewModel) { showDialog = true }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -877,5 +881,26 @@ fun ThemeBanner(appTheme: String) {
         contentScale = ContentScale.FillWidth
     )
 }
-}
+
+
+
+fun Modifier.vibrateClickable(
+    viewModel: MainViewModel,
+    onClick: () -> Unit
+): Modifier = composed {
+    val vibrateOnClick by viewModel.userPreferences.vibrateOnClick.collectAsState(initial = true)
+    val context = LocalContext.current
+    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator }
+    
+    this.clickable {
+        if (vibrateOnClick) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator?.vibrate(50)
+            }
+        }
+        onClick()
+    }
 }
