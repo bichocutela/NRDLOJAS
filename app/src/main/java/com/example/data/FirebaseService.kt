@@ -158,10 +158,7 @@ object FirebaseService {
                 }
                 batch.commit().await()
             }
-            if (products.isNotEmpty()) {
-                val latest = products.maxByOrNull { it.id }
-                if (latest != null) publishProductEvent("NEW_PRODUCT", latest.name, null, latest.code)
-            }
+            
         } catch (e: Exception) {
             Log.e("FirebaseService", "Error in syncAllProducts", e)
         }

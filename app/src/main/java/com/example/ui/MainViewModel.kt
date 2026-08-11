@@ -8,6 +8,7 @@ import com.example.api.GenerateContentRequest
 import com.example.api.Part
 import com.example.api.RetrofitClient
 import com.example.data.Product
+import com.example.data.FirebaseService
 import com.example.data.ProductRepository
 import com.example.data.UserPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,7 +64,7 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
     val latestProductLocal = repository.latestProductLocal.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     init {
         viewModelScope.launch {
-            com.example.data.FirebaseService.observeDynamicTabs().collect { remoteTabs ->
+            FirebaseService.observeDynamicTabs().collect { remoteTabs ->
                 val localTabs = repository.getAllTabs().first()
                 remoteTabs.forEach { remoteTab ->
                     val localTab = localTabs.find { it.id == remoteTab.id }
@@ -79,19 +80,19 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
             }
         }
         viewModelScope.launch {
-            com.example.data.FirebaseService.observeBannerUrl().collect { url ->
+            FirebaseService.observeBannerUrl().collect { url ->
                 if (url != null) {
                     userPreferences.setBannerImageUri(url)
                 }
             }
         }
         viewModelScope.launch {
-            com.example.data.FirebaseService.observeLatestProduct().collect {
+            FirebaseService.observeLatestProduct().collect {
                 _latestProduct.value = it
             }
         }
         viewModelScope.launch {
-            com.example.data.FirebaseService.observeProducts().collect { remoteProducts ->
+            FirebaseService.observeProducts().collect { remoteProducts ->
                 
                     val localProducts = repository.getAllProductsSync()
                     val remoteIds = remoteProducts.map { it.code }.toSet()
@@ -231,10 +232,10 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
         var finalProduct = newProduct
         finalProduct = finalProduct.copy(id = oldProduct.id)
         
-        if (com.example.data.FirebaseService.isFirebaseConfigured()) {
+        if (FirebaseService.isFirebaseConfigured()) {
             if (oldProduct.code != newProduct.code) {
                 android.util.Log.d("ProductSync", "Verificando se o novo código já existe: ${newProduct.code}")
-                val exists = com.example.data.FirebaseService.productExists(newProduct.code)
+                val exists = FirebaseService.productExists(newProduct.code)
                 if (exists) {
                     android.util.Log.e("ProductSync", "Código já existe: ${newProduct.code}")
                     _syncMessage.emit("Já existe outro produto com esse código.")
@@ -246,7 +247,7 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
         if (newProduct.imageUrl?.startsWith("content://") == true) {
             android.util.Log.d("ProductSync", "Iniciando upload de imagem para alteração: ${newProduct.code}")
             val uri = android.net.Uri.parse(newProduct.imageUrl)
-            val url = com.example.data.FirebaseService.uploadImageToStorage(uri, "products/${newProduct.code}_${System.currentTimeMillis()}.jpg")
+            val url = FirebaseService.uploadImageToStorage(uri, "products/${newProduct.code}_${System.currentTimeMillis()}.jpg")
             if (url != null) {
                 android.util.Log.d("ProductSync", "Upload sucesso: $url")
                 finalProduct = finalProduct.copy(imageUrl = url)
@@ -257,16 +258,16 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
             }
         }
 
-        if (com.example.data.FirebaseService.isFirebaseConfigured()) {
+        if (FirebaseService.isFirebaseConfigured()) {
             android.util.Log.d("ProductSync", "Iniciando save Firestore para edição: ${finalProduct.code}")
-            val saveSuccess = com.example.data.FirebaseService.saveProduct(finalProduct)
+            val saveSuccess = FirebaseService.saveProduct(finalProduct)
             if (saveSuccess) {
                 if (oldProduct.code != finalProduct.code) {
                     android.util.Log.d("ProductSync", "Código alterado de ${oldProduct.code} para ${finalProduct.code}. Excluindo antigo.")
-                    val deleteSuccess = com.example.data.FirebaseService.deleteProduct(oldProduct.code)
+                    val deleteSuccess = FirebaseService.deleteProduct(oldProduct.code)
                     if (!deleteSuccess) {
                         android.util.Log.e("ProductSync", "Erro ao excluir documento antigo: ${oldProduct.code}. Iniciando rollback.")
-                        val rollbackSuccess = com.example.data.FirebaseService.deleteProduct(finalProduct.code)
+                        val rollbackSuccess = FirebaseService.deleteProduct(finalProduct.code)
                         if (rollbackSuccess) {
                             android.util.Log.e("ProductSync", "Rollback com sucesso para: ${finalProduct.code}")
                             _syncMessage.emit("Não foi possível alterar o código. Tente novamente.")
@@ -283,7 +284,7 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
                 
                 if (oldProduct.code != finalProduct.code) {
                     android.util.Log.d("ProductSync", "Publicando evento: CODE_CHANGED")
-                    com.example.data.FirebaseService.publishProductEvent("CODE_CHANGED", finalProduct.name, null, finalProduct.code)
+                    FirebaseService.publishProductEvent("CODE_CHANGED", finalProduct.name, null, finalProduct.code)
                 }
                 _syncMessage.emit("Produto atualizado na nuvem!")
                 return true
@@ -299,11 +300,11 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
     }
     suspend fun removeProductImage(product: Product): Boolean {
         val updatedProduct = product.copy(imageUrl = null)
-        if (com.example.data.FirebaseService.isFirebaseConfigured()) {
-            val success = com.example.data.FirebaseService.saveProduct(updatedProduct)
+        if (FirebaseService.isFirebaseConfigured()) {
+            val success = FirebaseService.saveProduct(updatedProduct)
             if (success) {
                 repository.updateProduct(updatedProduct)
-                com.example.data.FirebaseService.publishProductEvent("INFO_CHANGED", updatedProduct.name, product.name, updatedProduct.code)
+                FirebaseService.publishProductEvent("INFO_CHANGED", updatedProduct.name, product.name, updatedProduct.code)
                 _syncMessage.emit("Foto removida com sucesso.")
                 return true
             } else {
@@ -317,11 +318,11 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
     }
 
     suspend fun deleteProductSuspend(product: Product): Boolean {
-        if (com.example.data.FirebaseService.isFirebaseConfigured()) {
-            val success = com.example.data.FirebaseService.deleteProduct(product.code)
+        if (FirebaseService.isFirebaseConfigured()) {
+            val success = FirebaseService.deleteProduct(product.code)
             if (success) {
                 repository.deleteProduct(product)
-                com.example.data.FirebaseService.publishProductEvent("PRODUCT_DELETED", product.name, null, product.code)
+                FirebaseService.publishProductEvent("PRODUCT_DELETED", product.name, null, product.code)
                 _syncMessage.emit("Produto excluído com sucesso.")
                 return true
             } else {
@@ -345,7 +346,7 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
         if (imageUrl?.startsWith("content://") == true) {
             android.util.Log.d("ProductSync", "Iniciando upload de imagem para $code")
             val uri = android.net.Uri.parse(imageUrl)
-            val url = com.example.data.FirebaseService.uploadImageToStorage(uri, "products/${code}_${System.currentTimeMillis()}.jpg")
+            val url = FirebaseService.uploadImageToStorage(uri, "products/${code}_${System.currentTimeMillis()}.jpg")
             if (url != null) {
                 android.util.Log.d("ProductSync", "Upload sucesso: $url")
                 finalImageUrl = url
@@ -363,13 +364,18 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
             unit = unit,
             imageUrl = finalImageUrl
         )
-        if (com.example.data.FirebaseService.isFirebaseConfigured()) {
+        if (FirebaseService.isFirebaseConfigured()) {
             android.util.Log.d("ProductSync", "Iniciando save Firestore para novo produto: $code")
-            val success = com.example.data.FirebaseService.saveProduct(product)
+            val success = FirebaseService.saveProduct(product)
             if (success) {
                 android.util.Log.d("ProductSync", "Save Firestore sucesso, atualizando Room: $code")
                 repository.insertProduct(product)
-                com.example.data.FirebaseService.publishProductEvent("NEW_PRODUCT", product.name, null, product.code)
+                FirebaseService.publishProductEvent(
+                    "NEW_PRODUCT",
+                    product.name,
+                    null,
+                    product.code
+                )
                 _syncMessage.emit("Produto adicionado na nuvem!")
                 _newProductsCount.value += 1
                 return true
@@ -393,14 +399,14 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
     fun syncProductsFromFirebase() {
         viewModelScope.launch {
             _isSyncing.value = true
-            if (!com.example.data.FirebaseService.isFirebaseConfigured()) {
-                val msg = com.example.data.FirebaseService.lastError ?: "Configuração ausente."
+            if (!FirebaseService.isFirebaseConfigured()) {
+                val msg = FirebaseService.lastError ?: "Configuração ausente."
                 _syncMessage.emit("Nuvem não configurada: $msg")
                 _isSyncing.value = false
                 return@launch
             }
             try {
-                val remoteProducts = com.example.data.FirebaseService.getAllProducts()
+                val remoteProducts = FirebaseService.getAllProducts()
                 
                     val localProducts = repository.getAllProductsSync()
                     val remoteIds = remoteProducts.map { it.code }.toSet()
@@ -442,7 +448,7 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
         val existingIds = repository.getAllTabs().first().map { it.id }.toSet()
         repository.insertTab(tab)
         val tabs = repository.getAllTabs().first { list -> list.any { it.id !in existingIds } }
-        com.example.data.FirebaseService.syncAllDynamicTabs(tabs)
+        FirebaseService.syncAllDynamicTabs(tabs)
         isSyncingTabs = false
     }
 
@@ -450,15 +456,15 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
         isSyncingTabs = true
         repository.updateTab(tab)
         val tabs = repository.getAllTabs().first { list -> list.any { it == tab } }
-        com.example.data.FirebaseService.syncAllDynamicTabs(tabs)
+        FirebaseService.syncAllDynamicTabs(tabs)
         isSyncingTabs = false
     }
 
     fun deleteProduct(product: Product) {
         viewModelScope.launch {
             repository.deleteProduct(product)
-            if (com.example.data.FirebaseService.isFirebaseConfigured()) {
-                com.example.data.FirebaseService.deleteProduct(product.code)
+            if (FirebaseService.isFirebaseConfigured()) {
+                FirebaseService.deleteProduct(product.code)
                 _syncMessage.emit("Produto excluído na nuvem!")
             }
         }
@@ -467,7 +473,7 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
     fun deleteTab(tab: com.example.data.DynamicTab) = viewModelScope.launch {
         isSyncingTabs = true
         repository.deleteTab(tab)
-        com.example.data.FirebaseService.deleteDynamicTab(tab)
+        FirebaseService.deleteDynamicTab(tab)
         isSyncingTabs = false
     }
 
