@@ -26,7 +26,11 @@ fun SettingsScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
     val fontScale by viewModel.userPreferences.fontScale.collectAsState(initial = 1.0f)
     val boldOutline by viewModel.userPreferences.boldOutline.collectAsState(initial = false)
     val uppercaseBold by viewModel.userPreferences.uppercaseBold.collectAsState(initial = false)
+    
     val notificationsEnabled by viewModel.userPreferences.notificationsEnabled.collectAsState(initial = true)
+    val notificationsProductAddedEnabled by viewModel.userPreferences.notificationsProductAddedEnabled.collectAsState(initial = true)
+    val notificationsCodeChangedEnabled by viewModel.userPreferences.notificationsCodeChangedEnabled.collectAsState(initial = true)
+
 
     var showSuggestionDialog by remember { mutableStateOf(false) }
     var suggestionText by remember { mutableStateOf("") }
@@ -150,14 +154,27 @@ fun SettingsScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
             
             HorizontalDivider()
             
+            
             Text("Notificações", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
             
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Notificar alterações de produto")
+                Text("Notificações Gerais")
                 Switch(checked = notificationsEnabled, onCheckedChange = { coroutineScope.launch { viewModel.userPreferences.setNotificationsEnabled(it) } })
             }
-
+            if (notificationsEnabled) {
+                Text("Preferências de notificações", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.secondary)
+                Row(modifier = Modifier.fillMaxWidth().padding(start = 16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("Código alterado")
+                    Switch(checked = notificationsCodeChangedEnabled, onCheckedChange = { coroutineScope.launch { viewModel.userPreferences.setNotificationsCodeChangedEnabled(it) } })
+                }
+                Row(modifier = Modifier.fillMaxWidth().padding(start = 16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("Produto adicionado")
+                    Switch(checked = notificationsProductAddedEnabled, onCheckedChange = { coroutineScope.launch { viewModel.userPreferences.setNotificationsProductAddedEnabled(it) } })
+                }
+            }
+            
             HorizontalDivider()
+
             
             Text("Feedback", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
             

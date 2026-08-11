@@ -38,6 +38,14 @@ class UserPreferences(private val context: Context) {
     val notificationsEnabled: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[NOTIFICATIONS_ENABLED] ?: true
     }
+    val notificationsProductAddedEnabled: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[NOTIFICATIONS_PRODUCT_ADDED_ENABLED] ?: true
+    }
+
+    val notificationsCodeChangedEnabled: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[NOTIFICATIONS_CODE_CHANGED_ENABLED] ?: true
+    }
+
     val lastNotifiedProductCode: Flow<String?> = context.dataStore.data.map { it[LAST_NOTIFIED_PRODUCT_CODE] }
     
     val appTheme: Flow<String> = context.dataStore.data.map { preferences ->
@@ -72,6 +80,14 @@ class UserPreferences(private val context: Context) {
     suspend fun setNotificationsEnabled(enabled: Boolean) {
         context.dataStore.edit { it[NOTIFICATIONS_ENABLED] = enabled }
     }
+    suspend fun setNotificationsProductAddedEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[NOTIFICATIONS_PRODUCT_ADDED_ENABLED] = enabled }
+    }
+
+    suspend fun setNotificationsCodeChangedEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[NOTIFICATIONS_CODE_CHANGED_ENABLED] = enabled }
+    }
+
     suspend fun setLastNotifiedProductCode(code: String) {
         context.dataStore.edit { it[LAST_NOTIFIED_PRODUCT_CODE] = code }
     }
@@ -91,6 +107,8 @@ class UserPreferences(private val context: Context) {
         val BOLD_OUTLINE = booleanPreferencesKey("bold_outline")
         val UPPERCASE_BOLD = booleanPreferencesKey("uppercase_bold")
         val NOTIFICATIONS_ENABLED = booleanPreferencesKey("notifications_enabled")
+        val NOTIFICATIONS_PRODUCT_ADDED_ENABLED = booleanPreferencesKey("notifications_product_added_enabled")
+        val NOTIFICATIONS_CODE_CHANGED_ENABLED = booleanPreferencesKey("notifications_code_changed_enabled")
         val FONT_SCALE = floatPreferencesKey("font_scale")
         val BANNER_IMAGE_URI = stringPreferencesKey("banner_image_uri")
         val LAST_NOTIFIED_PRODUCT_CODE = stringPreferencesKey("last_notified_product_code")

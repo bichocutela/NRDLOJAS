@@ -24,19 +24,27 @@ object NotificationHelper {
         currentToast?.show()
     }
 
+    
     fun createNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "Atualizações de Produtos"
-            val descriptionText = "Notificações quando novos produtos são adicionados"
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
-                description = descriptionText
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            
+            val channelAdded = NotificationChannel("product_added", "Produto adicionado", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                description = "Notificações quando novos produtos são adicionados"
             }
-            val notificationManager: NotificationManager =
-                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+            notificationManager.createNotificationChannel(channelAdded)
+
+            val channelCodeChanged = NotificationChannel("product_code_changed", "Código alterado", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                description = "Notificações quando o código de um produto é alterado"
+            }
+            notificationManager.createNotificationChannel(channelCodeChanged)
+            
+            // Legacy channel just in case
+            val legacy = NotificationChannel(CHANNEL_ID, "Atualizações de Produtos", NotificationManager.IMPORTANCE_DEFAULT)
+            notificationManager.createNotificationChannel(legacy)
         }
     }
+
 
     fun showProductEventNotification(context: Context, type: String, productName: String, oldName: String) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -70,20 +78,30 @@ object NotificationHelper {
         }
     }
 
+    
     fun showNotification(context: Context, title: String, body: String) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ActivityCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 return
             }
         }
-        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+        
+        val targetChannelId = when (title) {
+            "Produto adicionado" -> "product_added"
+            "Código alterado" -> "product_code_changed"
+            else -> CHANNEL_ID
+        }
+
+        val builder = NotificationCompat.Builder(context, targetChannelId)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
+
         with(NotificationManagerCompat.from(context)) {
             notify(System.currentTimeMillis().toInt(), builder.build())
         }
     }
+
 }

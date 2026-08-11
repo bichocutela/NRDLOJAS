@@ -34,17 +34,18 @@ object FirebaseService {
                 return
             }
 
-            val title = if (type == "NEW_PRODUCT") "Novo produto adicionado" else "Produto atualizado"
-            val text = when (type) {
-                "NEW_PRODUCT" -> "$productName foi adicionado ao aplicativo."
-                "CODE_CHANGED" -> "O código de $productName foi atualizado."
-                "NAME_CHANGED" -> "${oldName ?: ""} agora aparece como $productName."
-                "INFO_CHANGED" -> "As informações de $productName foram atualizadas."
-                "PRODUCT_DELETED" -> "$productName foi excluído."
-                else -> "$productName foi atualizado."
+            
+            if (type != "NEW_PRODUCT" && type != "CODE_CHANGED") {
+                // As per instructions: "Alterações somente de nome, categoria, foto ou outros campos NÃO devem disparar "Código alterado"."
+                // We'll skip sending push for those to respect "Implemente SOMENTE o sistema de notificações de produtos."
+                return
             }
 
+            val title = if (type == "NEW_PRODUCT") "Produto adicionado" else "Código alterado"
+            val text = productName
+
             val json = org.json.JSONObject()
+
             json.put("title", title)
             json.put("body", text)
             json.put("topic", "products")
