@@ -836,18 +836,37 @@ fun getCategoryIcon(category: String): String {
     }
 }
 
-fun generateBarcodeBitmap(data: String): ImageBitmap? {
+fun generateBarcodeBitmap(data: String, profile: String = "Padrão", zoom: Float = 1.0f): ImageBitmap? {
     try {
         val writer = MultiFormatWriter()
-        val hints = EnumMap<EncodeHintType, Any>(EncodeHintType::class.java)
-        hints[EncodeHintType.MARGIN] = 0 // we handle margin in Compose
+        val hints = java.util.EnumMap<EncodeHintType, Any>(EncodeHintType::class.java)
         
-        // Generate with higher horizontal resolution to prevent artifacts, 
-        // but even with FilterQuality.None, drawing sharp is best
-        val bitMatrix = writer.encode(data, BarcodeFormat.CODE_128, 1024, 256, hints)
+        val margin = when(profile) {
+            "Symbol" -> 20
+            "Datalogic" -> 6
+            else -> 10
+        }
+        hints[EncodeHintType.MARGIN] = margin
+
+        val baseWidth = when(profile) {
+            "Symbol" -> 800
+            "Datalogic" -> 1200
+            else -> 1024
+        }
+        val baseHeight = when(profile) {
+            "Symbol" -> 200
+            "Datalogic" -> 300
+            else -> 256
+        }
+
+        val finalWidth = (baseWidth * zoom).toInt()
+        val finalHeight = (baseHeight * zoom).toInt()
+
+        val bitMatrix = writer.encode(data, BarcodeFormat.CODE_128, finalWidth, finalHeight, hints)
         val width = bitMatrix.width
         val height = bitMatrix.height
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
+        
         for (x in 0 until width) {
             for (y in 0 until height) {
                 bitmap.setPixel(x, y, if (bitMatrix.get(x, y)) android.graphics.Color.BLACK else android.graphics.Color.WHITE)

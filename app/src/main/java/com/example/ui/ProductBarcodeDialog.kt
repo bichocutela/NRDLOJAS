@@ -14,9 +14,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,9 +44,8 @@ fun ProductBarcodeDialog(product: Product, onDismiss: () -> Unit) {
     val animateIn = remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     
-    var question by remember { mutableStateOf("") }
-    var answer by remember { mutableStateOf<String?>(null) }
-    var isAsking by remember { mutableStateOf(false) }
+    var scannerProfile by remember { mutableStateOf("Padrão") }
+    var zoomLevel by remember { mutableStateOf(1.0f) }
 
     fun closeDialog() {
         animateIn.value = false
@@ -91,19 +93,24 @@ fun ProductBarcodeDialog(product: Product, onDismiss: () -> Unit) {
                         )
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        val barcodeBitmap = generateBarcodeBitmap(product.code)
+                        val barcodeBitmap = generateBarcodeBitmap(product.code, scannerProfile, zoomLevel)
                         if (barcodeBitmap != null) {
-                            Image(
-                                bitmap = barcodeBitmap,
-                                contentDescription = "Código de barras",
-                                contentScale = ContentScale.FillBounds,
-                                filterQuality = FilterQuality.None,
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(90.dp)
-                                    .padding(horizontal = 8.dp)
-                                    .background(Color.White)
-                            )
+                                    .horizontalScroll(rememberScrollState()),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Image(
+                                    bitmap = barcodeBitmap,
+                                    contentDescription = "Código de barras",
+                                    contentScale = ContentScale.Fit,
+                                    filterQuality = FilterQuality.None,
+                                    modifier = Modifier
+                                        .height((90 * zoomLevel).dp)
+                                        .background(Color.White)
+                                )
+                            }
                             Spacer(modifier = Modifier.height(16.dp))
                         }
 
@@ -118,60 +125,71 @@ fun ProductBarcodeDialog(product: Product, onDismiss: () -> Unit) {
                         
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                             Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = "AI",
+                                imageVector = Icons.Default.QrCodeScanner,
+                                contentDescription = "Scanner",
                                 tint = MaterialTheme.colorScheme.primary
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Pergunte à IA sobre o produto",
+                                text = "Perfil do Leitor",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
                         Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = question,
-                            onValueChange = { question = it },
-                            placeholder = { Text("Ex: Como usar? É similar a qual produto?") },
+                        
+                        Row(
                             modifier = Modifier.fillMaxWidth(),
-                            trailingIcon = {
-                                IconButton(
-                                    onClick = {
-                                        if (question.isNotBlank() && !isAsking) {
-                                            isAsking = true
-                                            coroutineScope.launch {
-                                                answer = askGeminiAboutProduct(product, question)
-                                                isAsking = false
-                                            }
-                                        }
-                                    },
-                                    enabled = question.isNotBlank() && !isAsking
-                                ) {
-                                    if (isAsking) {
-                                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-                                    } else {
-                                        Icon(Icons.Default.Send, contentDescription = "Enviar")
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf("Padrão", "Symbol", "Datalogic").forEach { profile ->
+                                if (scannerProfile == profile) {
+                                    Button(
+                                        onClick = { scannerProfile = profile },
+                                        modifier = Modifier.weight(1f),
+                                        contentPadding = PaddingValues(0.dp)
+                                    ) {
+                                        Text(profile, fontSize = 12.sp, maxLines = 1)
+                                    }
+                                } else {
+                                    OutlinedButton(
+                                        onClick = { scannerProfile = profile },
+                                        modifier = Modifier.weight(1f),
+                                        contentPadding = PaddingValues(0.dp)
+                                    ) {
+                                        Text(profile, fontSize = 12.sp, maxLines = 1)
                                     }
                                 }
-                            },
-                            shape = RoundedCornerShape(16.dp),
-                            singleLine = true
-                        )
-                        
-                        if (answer != null) {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Surface(
-                                color = MaterialTheme.colorScheme.secondaryContainer,
-                                shape = RoundedCornerShape(16.dp),
-                                modifier = Modifier.fillMaxWidth()
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Ajuste de leitura", style = MaterialTheme.typography.titleSmall)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            IconButton(
+                                onClick = { 
+                                    if (zoomLevel > 0.55f) zoomLevel -= 0.1f 
+                                },
+                                enabled = zoomLevel > 0.55f
                             ) {
-                                Text(
-                                    text = answer!!,
-                                    modifier = Modifier.padding(16.dp),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
+                                Icon(Icons.Default.Remove, contentDescription = "Menos")
+                            }
+                            Text(
+                                text = "${Math.round(zoomLevel * 100)}%",
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                            IconButton(
+                                onClick = { 
+                                    if (zoomLevel < 1.45f) zoomLevel += 0.1f 
+                                },
+                                enabled = zoomLevel < 1.45f
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = "Mais")
                             }
                         }
 
