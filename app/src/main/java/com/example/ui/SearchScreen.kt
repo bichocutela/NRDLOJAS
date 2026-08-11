@@ -859,7 +859,13 @@ fun generateBarcodeBitmap(data: String, profile: String = "Padrão"): ImageBitma
             else -> 256
         }
 
-        val bitMatrix = writer.encode(data, BarcodeFormat.CODE_128, baseWidth, baseHeight, hints)
+        val format = if (data.length == 13 && data.all { it.isDigit() }) {
+            BarcodeFormat.EAN_13
+        } else {
+            BarcodeFormat.CODE_128
+        }
+
+        val bitMatrix = writer.encode(data, format, baseWidth, baseHeight, hints)
         val width = bitMatrix.width
         val height = bitMatrix.height
         val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)

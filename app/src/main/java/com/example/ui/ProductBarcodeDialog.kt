@@ -109,7 +109,7 @@ fun ProductBarcodeDialog(product: Product, onDismiss: () -> Unit) {
                                 Image(
                                     bitmap = barcodeBitmap,
                                     contentDescription = "Código de barras",
-                                    contentScale = ContentScale.FillBounds,
+                                    contentScale = ContentScale.Fit,
                                     filterQuality = FilterQuality.None,
                                     modifier = Modifier
                                         .fillMaxWidth(widthFraction)
