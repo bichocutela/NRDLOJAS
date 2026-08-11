@@ -836,14 +836,14 @@ fun getCategoryIcon(category: String): String {
     }
 }
 
-fun generateBarcodeBitmap(data: String, profile: String = "Padrão", zoom: Float = 1.0f): ImageBitmap? {
+fun generateBarcodeBitmap(data: String, profile: String = "Padrão"): ImageBitmap? {
     try {
         val writer = MultiFormatWriter()
         val hints = java.util.EnumMap<EncodeHintType, Any>(EncodeHintType::class.java)
         
         val margin = when(profile) {
             "Symbol" -> 20
-            "Datalogic" -> 6
+            "Datalogic" -> 10
             else -> 10
         }
         hints[EncodeHintType.MARGIN] = margin
@@ -859,10 +859,7 @@ fun generateBarcodeBitmap(data: String, profile: String = "Padrão", zoom: Float
             else -> 256
         }
 
-        val finalWidth = (baseWidth * zoom).toInt()
-        val finalHeight = (baseHeight * zoom).toInt()
-
-        val bitMatrix = writer.encode(data, BarcodeFormat.CODE_128, finalWidth, finalHeight, hints)
+        val bitMatrix = writer.encode(data, BarcodeFormat.CODE_128, baseWidth, baseHeight, hints)
         val width = bitMatrix.width
         val height = bitMatrix.height
         val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)

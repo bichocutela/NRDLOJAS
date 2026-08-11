@@ -45,7 +45,7 @@ fun ProductBarcodeDialog(product: Product, onDismiss: () -> Unit) {
     val coroutineScope = rememberCoroutineScope()
     
     var scannerProfile by remember { mutableStateOf("Padrão") }
-    var zoomLevel by remember { mutableStateOf(1.0f) }
+    var zoomPercent by remember { mutableIntStateOf(100) }
 
     fun closeDialog() {
         animateIn.value = false
@@ -93,21 +93,27 @@ fun ProductBarcodeDialog(product: Product, onDismiss: () -> Unit) {
                         )
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        val barcodeBitmap = generateBarcodeBitmap(product.code, scannerProfile, zoomLevel)
+                        val barcodeBitmap = generateBarcodeBitmap(product.code, scannerProfile)
                         if (barcodeBitmap != null) {
+                            val targetHeight = when (scannerProfile) {
+                                "Symbol" -> 130.dp
+                                "Datalogic" -> 140.dp
+                                else -> 110.dp
+                            }
+                            val widthFraction = (0.9f * (zoomPercent / 100f)).coerceAtMost(1.0f)
+                            
                             Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .horizontalScroll(rememberScrollState()),
+                                modifier = Modifier.fillMaxWidth(),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Image(
                                     bitmap = barcodeBitmap,
                                     contentDescription = "Código de barras",
-                                    contentScale = ContentScale.Fit,
+                                    contentScale = ContentScale.FillBounds,
                                     filterQuality = FilterQuality.None,
                                     modifier = Modifier
-                                        .height((90 * zoomLevel).dp)
+                                        .fillMaxWidth(widthFraction)
+                                        .height(targetHeight)
                                         .background(Color.White)
                                 )
                             }
@@ -172,22 +178,22 @@ fun ProductBarcodeDialog(product: Product, onDismiss: () -> Unit) {
                         ) {
                             IconButton(
                                 onClick = { 
-                                    if (zoomLevel > 0.55f) zoomLevel -= 0.1f 
+                                    if (zoomPercent > 80) zoomPercent -= 10 
                                 },
-                                enabled = zoomLevel > 0.55f
+                                enabled = zoomPercent > 80
                             ) {
                                 Icon(Icons.Default.Remove, contentDescription = "Menos")
                             }
                             Text(
-                                text = "${Math.round(zoomLevel * 100)}%",
+                                text = "${zoomPercent}%",
                                 style = MaterialTheme.typography.titleMedium,
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             )
                             IconButton(
                                 onClick = { 
-                                    if (zoomLevel < 1.45f) zoomLevel += 0.1f 
+                                    if (zoomPercent < 120) zoomPercent += 10 
                                 },
-                                enabled = zoomLevel < 1.45f
+                                enabled = zoomPercent < 120
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = "Mais")
                             }
