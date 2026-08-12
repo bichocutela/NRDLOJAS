@@ -43,6 +43,8 @@ class ProductRepository(
     }
 
     suspend fun getAllProductsSync() = dao.getAllProductsSync()
+    suspend fun getProductByCodeSync(code: String) = dao.getProductByCodeSync(code)
+    suspend fun cleanDuplicates() = dao.deleteDuplicates()
 
     suspend fun searchProductsSync(query: String): List<Product> {
         val normalizedQuery = query.unaccent().lowercase().trim()

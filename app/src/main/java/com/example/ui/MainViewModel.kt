@@ -232,15 +232,13 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
         var finalProduct = newProduct
         finalProduct = finalProduct.copy(id = oldProduct.id)
         
-        if (FirebaseService.isFirebaseConfigured()) {
-            if (oldProduct.code != newProduct.code) {
-                android.util.Log.d("ProductSync", "Verificando se o novo código já existe: ${newProduct.code}")
-                val exists = FirebaseService.productExists(newProduct.code)
-                if (exists) {
-                    android.util.Log.e("ProductSync", "Código já existe: ${newProduct.code}")
-                    _syncMessage.emit("Já existe outro produto com esse código.")
-                    return false
-                }
+        if (oldProduct.code != newProduct.code) {
+            android.util.Log.d("ProductSync", "Verificando se o novo código já existe: ${newProduct.code}")
+            val existingProduct = repository.getProductByCodeSync(newProduct.code)
+            if (existingProduct != null && existingProduct.id != oldProduct.id) {
+                android.util.Log.e("ProductSync", "Código já existe: ${newProduct.code}")
+                _syncMessage.emit("Código já cadastrado\n\nO código ${newProduct.code} já pertence ao produto:\n${existingProduct.name}")
+                return false
             }
         }
 
@@ -342,6 +340,11 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
     }
 
         suspend fun addProductSuspend(name: String, code: String, category: String, unit: String, imageUrl: String? = null): Boolean {
+        val existingProduct = repository.getProductByCodeSync(code)
+        if (existingProduct != null) {
+            _syncMessage.emit("Código já cadastrado\n\nJá existe um produto utilizando o código $code:\n${existingProduct.name}")
+            return false
+        }
         var finalImageUrl = imageUrl
         if (imageUrl?.startsWith("content://") == true) {
             android.util.Log.d("ProductSync", "Iniciando upload de imagem para $code")
@@ -406,6 +409,7 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
                 return@launch
             }
             try {
+                repository.cleanDuplicates()
                 val remoteProducts = FirebaseService.getAllProducts()
                 
                     val localProducts = repository.getAllProductsSync()
