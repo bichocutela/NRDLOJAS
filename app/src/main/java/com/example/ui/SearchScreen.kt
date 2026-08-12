@@ -157,10 +157,11 @@ fun StylizedText(
 fun SearchScreen(viewModel: MainViewModel, onOpenDrawer: () -> Unit = {}) {
     val bannerImageUri by viewModel.userPreferences.bannerImageUri.collectAsState(initial = null)
     
-val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(initialValue = "red")
+val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(initialValue = "multicolor")
     
     val normalizedTheme = remember(appTheme) { 
         when (appTheme.trim().lowercase()) {
+            "multicolor" -> "multicolor"
             "gold" -> "gold"
             "green" -> "green"
             "blue" -> "blue"
@@ -885,6 +886,7 @@ fun generateBarcodeBitmap(data: String, profile: String = "Padrão"): ImageBitma
 @Composable
 fun ThemeBanner(appTheme: String) {
     val normalizedTheme = when (appTheme.trim().lowercase()) {
+        "multicolor" -> "multicolor"
         "gold" -> "gold"
         "green" -> "green"
         "blue" -> "blue"

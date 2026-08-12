@@ -49,7 +49,7 @@ class UserPreferences(private val context: Context) {
     val lastNotifiedProductCode: Flow<String?> = context.dataStore.data.map { it[LAST_NOTIFIED_PRODUCT_CODE] }
     
     val appTheme: Flow<String> = context.dataStore.data.map { preferences ->
-        preferences[APP_THEME] ?: "red"
+        preferences[APP_THEME] ?: "multicolor"
     }
 
     val onboardingShown: Flow<Boolean> = context.dataStore.data.map { preferences ->

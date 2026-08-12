@@ -99,10 +99,11 @@ fun SettingsScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
             
             Text("Tema do Aplicativo", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
             
-            val appTheme by viewModel.userPreferences.appTheme.collectAsState(initial = "red")
+            val appTheme by viewModel.userPreferences.appTheme.collectAsState(initial = "multicolor")
             var expandedThemeMenu by remember { mutableStateOf(false) }
             val themeOptions = listOf(
-                "red" to "Vermelho (Padrão)",
+                "multicolor" to "Multicolorido",
+                "red" to "Vermelho",
                 "gold" to "Dourado",
                 "green" to "Verde",
                 "blue" to "Azul",
@@ -114,7 +115,7 @@ fun SettingsScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                 onExpandedChange = { expandedThemeMenu = !expandedThemeMenu }
             ) {
                 OutlinedTextField(
-                    value = themeOptions.find { it.first == appTheme }?.second ?: "Vermelho (Padrão)",
+                    value = themeOptions.find { it.first == appTheme }?.second ?: "Multicolorido",
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Selecione o Tema") },
