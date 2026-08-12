@@ -34,6 +34,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.background
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.example.ui.theme.getDynamicThemeColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
@@ -71,6 +72,7 @@ fun AdminScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
     
     val allProducts by viewModel.allProducts.collectAsStateWithLifecycle()
     val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
+    val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(initialValue = "multicolor")
 
 
     LaunchedEffect(Unit) {
@@ -146,6 +148,10 @@ fun AdminScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
                 Button(
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = getDynamicThemeColor(0, appTheme, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary).first,
+                        contentColor = getDynamicThemeColor(0, appTheme, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary).second
+                    ),
                     onClick = {
                         scope.launch {
                             val path = com.example.util.PdfExporter.exportProductsToPdf(context, allProducts)
@@ -176,6 +182,10 @@ fun AdminScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 Button(
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = getDynamicThemeColor(1, appTheme, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary).first,
+                        contentColor = getDynamicThemeColor(1, appTheme, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary).second
+                    ),
                     onClick = {
                         launcher.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                     }
@@ -186,6 +196,10 @@ fun AdminScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                 }
                 
                 Button(
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = getDynamicThemeColor(2, appTheme, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary).first,
+                        contentColor = getDynamicThemeColor(2, appTheme, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary).second
+                    ),
                     onClick = {
                         selectedImageUri = null
                         selectedBitmap = null

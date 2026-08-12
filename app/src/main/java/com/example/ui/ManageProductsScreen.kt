@@ -3,6 +3,7 @@ package com.example.ui
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
@@ -14,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.example.ui.theme.getDynamicThemeColor
 import androidx.compose.ui.unit.dp
 import com.example.data.Product
 
@@ -21,6 +23,7 @@ import com.example.data.Product
 @Composable
 fun ManageProductsScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
     val products by viewModel.allProducts.collectAsState()
+    val appTheme by viewModel.userPreferences.appTheme.collectAsState(initial = "multicolor")
     var showDialog by remember { mutableStateOf(false) }
     var editingProduct by remember { mutableStateOf<Product?>(null) }
     
@@ -44,9 +47,11 @@ fun ManageProductsScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
         LazyColumn(
             modifier = Modifier.padding(innerPadding).fillMaxSize()
         ) {
-            items(products) { product ->
+            itemsIndexed(products) { index, product ->
+                val dynColors = getDynamicThemeColor(index, appTheme, MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
                 Card(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, dynColors.first)
                 ) {
                     Row(
                         modifier = Modifier.padding(16.dp).fillMaxWidth(),

@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.example.ui.theme.getDynamicThemeColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -61,7 +62,8 @@ fun SettingsScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             
-            Text("Preferências de Interface", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            val appTheme by viewModel.userPreferences.appTheme.collectAsState(initial = "multicolor")
+            Text("Preferências de Interface", style = MaterialTheme.typography.titleMedium, color = getDynamicThemeColor(0, appTheme, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary).first)
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Tamanho da Fonte", modifier = Modifier.weight(1f))
@@ -97,9 +99,8 @@ fun SettingsScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
             HorizontalDivider()
             
             
-            Text("Tema do Aplicativo", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            Text("Tema do Aplicativo", style = MaterialTheme.typography.titleMedium, color = getDynamicThemeColor(1, appTheme, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary).first)
             
-            val appTheme by viewModel.userPreferences.appTheme.collectAsState(initial = "multicolor")
             var expandedThemeMenu by remember { mutableStateOf(false) }
             val themeOptions = listOf(
                 "multicolor" to "Multicolorido",
@@ -141,7 +142,7 @@ fun SettingsScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
             
             HorizontalDivider()
 
-            Text("Vibração", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            Text("Vibração", style = MaterialTheme.typography.titleMedium, color = getDynamicThemeColor(2, appTheme, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary).first)
             
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Vibrar ao clicar no balão")
@@ -156,7 +157,7 @@ fun SettingsScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
             HorizontalDivider()
             
             
-            Text("Notificações", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            Text("Notificações", style = MaterialTheme.typography.titleMedium, color = getDynamicThemeColor(3, appTheme, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary).first)
             
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Notificações Gerais")
@@ -177,7 +178,7 @@ fun SettingsScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
             HorizontalDivider()
 
             
-            Text("Feedback", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            Text("Feedback", style = MaterialTheme.typography.titleMedium, color = getDynamicThemeColor(4, appTheme, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary).first)
             
             Button(
                 onClick = { showSuggestionDialog = true },

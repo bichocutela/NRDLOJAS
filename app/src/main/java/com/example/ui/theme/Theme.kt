@@ -81,3 +81,18 @@ fun MyApplicationTheme(
     val colorScheme = getThemeColorScheme(appTheme)
     MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
 }
+
+val MulticolorPalette = listOf(
+    Pair(Color(0xFFE62325), Color.White), // Vermelho
+    Pair(Color(0xFF388E3C), Color.White), // Verde
+    Pair(Color(0xFF1976D2), Color.White), // Azul
+    Pair(Color(0xFFFF9800), Color.White), // Laranja
+    Pair(Color(0xFFD4AF37), Color(0xFF212121))  // Dourado
+)
+
+fun getDynamicThemeColor(index: Int, appTheme: String, defaultColor: Color, defaultOnColor: Color): Pair<Color, Color> {
+    if (appTheme == "multicolor") {
+        return MulticolorPalette[index % MulticolorPalette.size]
+    }
+    return Pair(defaultColor, defaultOnColor)
+}

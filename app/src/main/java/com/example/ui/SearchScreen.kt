@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -67,6 +68,7 @@ import kotlinx.coroutines.flow.collectLatest
 
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.example.ui.theme.getDynamicThemeColor
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.ui.res.painterResource
@@ -340,8 +342,8 @@ val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(i
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(searchResults, key = { it.code }) { product ->
-                    ProductCard(product, viewModel)
+                itemsIndexed(searchResults, key = { _, it -> it.code }) { index, product ->
+                    ProductCard(product, viewModel, index, appTheme)
                 }
             }
         } else {
@@ -351,7 +353,7 @@ val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(i
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
                 item {
-                    CategorySection(viewModel)
+                    CategorySection(viewModel, appTheme)
                 }
 
                 if (mostUsed.isNotEmpty()) {
@@ -361,8 +363,8 @@ val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(i
                             contentPadding = PaddingValues(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            items(mostUsed, key = { it.code }) { product ->
-                                MiniProductCard(product, viewModel)
+                            itemsIndexed(mostUsed, key = { _, it -> it.code }) { index, product ->
+                                MiniProductCard(product, viewModel, index, appTheme)
                             }
                         }
                     }
@@ -375,8 +377,8 @@ val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(i
                             modifier = Modifier.padding(horizontal = 16.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            history.take(5).forEach { product ->
-                                HistoryItem(product, viewModel)
+                            history.take(5).forEachIndexed { index, product ->
+                                HistoryItem(product, viewModel, index, appTheme)
                             }
                         }
                     }
@@ -390,8 +392,8 @@ val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(i
                             modifier = Modifier.padding(horizontal = 16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            favorites.forEach { product ->
-                                ProductCard(product, viewModel)
+                            favorites.forEachIndexed { index, product ->
+                                ProductCard(product, viewModel, index, appTheme)
                             }
                         }
                     }
@@ -482,7 +484,7 @@ fun SectionHeader(title: String) {
 }
 
 @Composable
-fun CategorySection(viewModel: MainViewModel) {
+fun CategorySection(viewModel: MainViewModel, appTheme: String) {
     val categories = listOf(
         Pair("Padaria", MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer),
         Pair("Hortifruti", MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer),
@@ -497,11 +499,12 @@ fun CategorySection(viewModel: MainViewModel) {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.padding(bottom = 8.dp)
     ) {
-        items(categories) { (category, colors) ->
+        itemsIndexed(categories) { index, (category, colors) ->
+            val dynamicColors = getDynamicThemeColor(index, appTheme, colors.first, colors.second)
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .background(colors.first)
+                    .background(dynamicColors.first)
                     .clickable { viewModel.updateSearchQuery(category) }
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 contentAlignment = Alignment.Center
@@ -509,7 +512,7 @@ fun CategorySection(viewModel: MainViewModel) {
                 Text(
                     text = category.uppercase(),
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    color = colors.second
+                    color = dynamicColors.second
                 )
             }
         }
@@ -517,7 +520,7 @@ fun CategorySection(viewModel: MainViewModel) {
 }
 
 @Composable
-fun ProductCard(product: Product, viewModel: MainViewModel) {
+fun ProductCard(product: Product, viewModel: MainViewModel, index: Int = 0, appTheme: String = "multicolor") {
     var showDialog by remember { mutableStateOf(false) }
     if (showDialog) {
         ProductBarcodeDialog(product = product, onDismiss = { showDialog = false })
@@ -544,17 +547,18 @@ fun ProductCard(product: Product, viewModel: MainViewModel) {
                     .clip(CircleShape)
             )
         } else {
+            val dynColors = getDynamicThemeColor(index, appTheme, MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
             Box(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                    .background(dynColors.first),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = product.name.take(1).uppercase(),
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = dynColors.second
                 )
             }
         }
@@ -617,7 +621,7 @@ fun ProductCard(product: Product, viewModel: MainViewModel) {
 
 
 @Composable
-fun MiniProductCard(product: Product, viewModel: MainViewModel) {
+fun MiniProductCard(product: Product, viewModel: MainViewModel, index: Int = 0, appTheme: String = "multicolor") {
     var showDialog by remember { mutableStateOf(false) }
     if (showDialog) {
         ProductBarcodeDialog(product = product, onDismiss = { showDialog = false })
@@ -651,17 +655,18 @@ fun MiniProductCard(product: Product, viewModel: MainViewModel) {
                         .clip(CircleShape)
                 )
             } else {
+                val dynColors = getDynamicThemeColor(index, appTheme, MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
                 Box(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
+                        .background(dynColors.first),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = product.name.take(1).uppercase(),
                         style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = dynColors.second
                     )
                 }
             }
@@ -712,17 +717,18 @@ fun MiniProductCard(product: Product, viewModel: MainViewModel) {
 }
 
 @Composable
-fun HistoryItem(product: Product, viewModel: MainViewModel) {
+fun HistoryItem(product: Product, viewModel: MainViewModel, index: Int = 0, appTheme: String = "multicolor") {
     var showDialog by remember { mutableStateOf(false) }
     if (showDialog) {
         ProductBarcodeDialog(product = product, onDismiss = { showDialog = false })
     }
+    val dynColors = getDynamicThemeColor(index, appTheme, MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-            .border(1.dp, MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(16.dp))
+            .border(1.dp, dynColors.first, RoundedCornerShape(16.dp))
             .vibrateClickable(viewModel) { showDialog = true }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -732,7 +738,7 @@ fun HistoryItem(product: Product, viewModel: MainViewModel) {
             Icon(
                 imageVector = Icons.Default.History,
                 contentDescription = "Histórico",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = dynColors.first,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(16.dp))
