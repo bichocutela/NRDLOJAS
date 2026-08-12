@@ -27,6 +27,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @Composable
 fun AppNavGraph(viewModel: MainViewModel) {
@@ -212,7 +213,7 @@ fun LoginDrawerContent(
                             if ((inputUser == "admin" || inputUser == "mestre") && password == "nrdlojas") {
                                 val email = if (inputUser == "admin") "admin@nrdlojas.com" else "mestre@nrdlojas.com"
                                 val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
-                                kotlinx.coroutines.tasks.await(auth.signInWithEmailAndPassword(email, password))
+                                auth.signInWithEmailAndPassword(email, password).await()
                                 onLoginSuccess(inputUser)
                             } else {
                                 loginStatus = "Usuário ou senha incorretos"
