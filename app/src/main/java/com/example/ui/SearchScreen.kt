@@ -83,6 +83,7 @@ import androidx.compose.foundation.Image
 import com.example.R
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -242,15 +243,37 @@ val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(i
                 modifier = Modifier.fillMaxSize()
             ) {
                 ThemeBanner(appTheme = normalizedTheme)
-                Text(
-                    text = "NRD Códigos Correlatos",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 8.dp)
-                )
+                if (normalizedTheme == "multicolor") {
+                    val gradientBrush = androidx.compose.runtime.remember {
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                Color(0xFFE62325), // Vermelho
+                                Color(0xFFFF9800), // Laranja
+                                Color(0xFFD4AF37), // Dourado
+                                Color(0xFF388E3C), // Verde
+                                Color(0xFF1976D2)  // Azul
+                            )
+                        )
+                    }
+                    Text(
+                        text = "NRD Códigos Correlatos",
+                        style = MaterialTheme.typography.titleMedium.copy(brush = gradientBrush),
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 8.dp)
+                    )
+                } else {
+                    Text(
+                        text = "NRD Códigos Correlatos",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 8.dp)
+                    )
+                }
             }
             
             // Hamburger Menu overlay
@@ -905,9 +928,7 @@ fun ThemeBanner(appTheme: String) {
     AsyncImage(
         model = imageUrl,
         contentDescription = "Banner do tema $normalizedTheme",
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.primaryContainer),
+        modifier = Modifier.fillMaxSize(),
         contentScale = ContentScale.FillWidth
     )
 }

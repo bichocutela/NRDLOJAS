@@ -1,92 +1,72 @@
-import re
-
-file_path = "app/src/main/java/com/example/ui/SearchScreen.kt"
-
-with open(file_path, "r") as f:
+import sys
+with open("app/src/main/java/com/example/ui/SearchScreen.kt", "r") as f:
     content = f.read()
 
-target = """@Composable
-fun ThemeBanner(appTheme: String) {
-    val context = LocalContext.current
+# Add imports
+if "import androidx.compose.ui.graphics.Brush" not in content:
+    content = content.replace("import androidx.compose.ui.graphics.Color", "import androidx.compose.ui.graphics.Color\nimport androidx.compose.ui.graphics.Brush")
 
-    val normalizedTheme = when (appTheme.trim().lowercase()) {
-        "gold" -> "gold"
-        "green" -> "green"
-        "blue" -> "blue"
-        "orange" -> "orange"
-        else -> "red"
-    }
-
-    val assetName = "themes/theme_${normalizedTheme}.jpg"
-    val fallbackAssetName = "themes/theme_red.jpg"
-
-    val bitmap = remember(normalizedTheme) {
-        var b = runCatching {
-            context.assets.open(assetName).use { input ->
-                android.graphics.BitmapFactory.decodeStream(input)
-            }
-        }.getOrNull()
-        
-        if (b == null) {
-            b = runCatching {
-                context.assets.open(fallbackAssetName).use { input ->
-                    android.graphics.BitmapFactory.decodeStream(input)
-                }
-            }.getOrNull()
-        }
-        b
-    }
-
-    if (bitmap != null) {
-        Image(
-            bitmap = bitmap.asImageBitmap(),
-            contentDescription = "Banner do tema $normalizedTheme",
-            modifier = Modifier
-                .fillMaxSize(),
-            contentScale = ContentScale.FillWidth
-        )
-    } else {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.primaryContainer)
-        )
-    }
-}"""
-
-replacement = """@Composable
-fun ThemeBanner(appTheme: String) {
-    val normalizedTheme = when (appTheme.trim().lowercase()) {
-        "gold" -> "gold"
-        "green" -> "green"
-        "blue" -> "blue"
-        "orange" -> "orange"
-        else -> "red"
-    }
-
-    val imageUrl = "https://kkayksyzksexoarpfxyj.supabase.co/storage/v1/object/public/nrdlojas-images/themes/theme_${normalizedTheme}.jpg"
-
-    AsyncImage(
+# 1. Update ThemeBanner
+target_banner = """    AsyncImage(
         model = imageUrl,
         contentDescription = "Banner do tema $normalizedTheme",
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.primaryContainer),
         contentScale = ContentScale.FillWidth
-    )
-}"""
+    )"""
+replacement_banner = """    AsyncImage(
+        model = imageUrl,
+        contentDescription = "Banner do tema $normalizedTheme",
+        modifier = Modifier.fillMaxSize(),
+        contentScale = ContentScale.FillWidth
+    )"""
+content = content.replace(target_banner, replacement_banner)
 
-if target in content:
-    with open(file_path, "w") as f:
-        f.write(content.replace(target, replacement))
-    print("Patched successfully")
-else:
-    print("Target not found. Looking closely...")
-    # Just to be sure, let's use regex
-    match = re.search(r"@Composable\s+fun ThemeBanner.*?^}", content, re.MULTILINE | re.DOTALL)
-    if match:
-        with open(file_path, "w") as f:
-            f.write(content[:match.start()] + replacement + content[match.end():])
-        print("Patched successfully via regex")
-    else:
-        print("Could not patch!")
+# 2. Update Title
+target_title = """                Text(
+                    text = "NRD Códigos Correlatos",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 8.dp)
+                )"""
+
+replacement_title = """                if (normalizedTheme == "multicolor") {
+                    val gradientBrush = androidx.compose.runtime.remember {
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                Color(0xFFE62325), // Vermelho
+                                Color(0xFFFF9800), // Laranja
+                                Color(0xFFD4AF37), // Dourado
+                                Color(0xFF388E3C), // Verde
+                                Color(0xFF1976D2)  // Azul
+                            )
+                        )
+                    }
+                    Text(
+                        text = "NRD Códigos Correlatos",
+                        style = MaterialTheme.typography.titleMedium.copy(brush = gradientBrush),
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 8.dp)
+                    )
+                } else {
+                    Text(
+                        text = "NRD Códigos Correlatos",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 8.dp)
+                    )
+                }"""
+content = content.replace(target_title, replacement_title)
+
+with open("app/src/main/java/com/example/ui/SearchScreen.kt", "w") as f:
+    f.write(content)
+print("Success")
