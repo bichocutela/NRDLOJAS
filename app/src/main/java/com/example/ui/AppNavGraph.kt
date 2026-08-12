@@ -205,13 +205,23 @@ fun LoginDrawerContent(
             Button(
                 onClick = {
                     if (isLoading) return@Button
+                    isLoading = true
                     val inputUser = username.trim().lowercase()
-                    if (inputUser == "admin" && password == "nrdlojas") {
-                        onLoginSuccess("admin")
-                    } else if (inputUser == "mestre" && password == "nrdlojas") {
-                        onLoginSuccess("mestre")
-                    } else {
-                        loginStatus = "Usuário ou senha incorretos"
+                    scope.launch {
+                        try {
+                            if ((inputUser == "admin" || inputUser == "mestre") && password == "nrdlojas") {
+                                val email = if (inputUser == "admin") "admin@nrdlojas.com" else "mestre@nrdlojas.com"
+                                val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+                                kotlinx.coroutines.tasks.await(auth.signInWithEmailAndPassword(email, password))
+                                onLoginSuccess(inputUser)
+                            } else {
+                                loginStatus = "Usuário ou senha incorretos"
+                            }
+                        } catch (e: Exception) {
+                            loginStatus = "Erro ao autenticar: ${e.localizedMessage}"
+                        } finally {
+                            isLoading = false
+                        }
                     }
                 },
                 enabled = !isLoading,

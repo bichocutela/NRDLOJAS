@@ -51,7 +51,7 @@ object FirebaseService {
             json.put("topic", "products")
 
             val requestBody = okhttp3.RequestBody.create("application/json".toMediaType(), json.toString())
-            val firebaseToken = "nrdlojas"
+            val firebaseToken = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.getIdToken(false)?.await()?.token ?: ""
             val request = okhttp3.Request.Builder()
                 .url("$supabaseUrl/functions/v1/send-fcm")
                 .post(requestBody)
@@ -85,13 +85,14 @@ object FirebaseService {
         private suspend fun ensureAuthenticated() {
         try {
             val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
-            if (auth.currentUser == null) {
-                try {
-                    auth.signInWithEmailAndPassword("admin@nrdlojas.com", "nrdlojas").await()
-                } catch (e: Exception) {
-                    auth.signInAnonymously().await()
+            val user = auth.currentUser
+            if (user != null) {
+                val email = user.email
+                if (email == "admin@nrdlojas.com" || email == "mestre@nrdlojas.com") {
+                    return
                 }
             }
+            Log.w("FirebaseService", "Usuário não autenticado para operação restrita")
         } catch (e: Exception) {
             Log.e("FirebaseService", "Auth falhou", e)
         }
@@ -281,7 +282,7 @@ object FirebaseService {
             return@withContext null
         }
         
-        val firebaseToken = "bypass-token"
+        val firebaseToken = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.getIdToken(false)?.await()?.token ?: ""
 
         try {
             val ctx = appContext ?: return@withContext null
