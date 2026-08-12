@@ -1,54 +1,80 @@
 import sys
+
 with open("app/src/main/java/com/example/ui/AdminScreen.kt", "r") as f:
     content = f.read()
 
-if "import com.example.ui.theme.getDynamicThemeColor" not in content:
-    content = content.replace("import androidx.compose.ui.Modifier", "import androidx.compose.ui.Modifier\nimport com.example.ui.theme.getDynamicThemeColor")
+target = """                        var isAdding by remember { mutableStateOf(false) }
+                Button(
+                    onClick = {
+                        if (productName.isNotBlank() && productCode.isNotBlank()) {
+                            scope.launch {
+                                isAdding = true
+                                val success = viewModel.addProductSuspend(
+                                    name = productName,
+                                    code = productCode,
+                                    category = if (productCategory.isNotBlank()) productCategory else "Geral",
+                                    unit = "un",
+                                    imageUrl = productImageUrl.ifBlank { null }?.let { com.example.util.ImageUrlHelper.normalizeUrl(it) }
+                                )
+                                isAdding = false
+                                if (success) {
+                                    showManualForm = false
+                                    snackbarHostState.showSnackbar("Produto adicionado com sucesso!")
+                                }
+                            }
+                        } else {
+                            scope.launch { snackbarHostState.showSnackbar("Nome e código são obrigatórios.") }
+                        }
+                    },"""
 
-# Add appTheme collection
-content = content.replace('val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()', 'val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()\n    val appTheme by viewModel.userPreferences.appTheme.collectAsStateWithLifecycle(initialValue = "multicolor")')
+replacement = """                        var isAdding by remember { mutableStateOf(false) }
+                        var duplicateErrorProduct by remember { mutableStateOf<com.example.data.Product?>(null) }
+                        var showDuplicateErrorDialog by remember { mutableStateOf(false) }
 
-# Exportar Inventário
-target_btn1 = """                    onClick = {
-                        scope.launch {"""
-replacement_btn1 = """                    colors = ButtonDefaults.buttonColors(
-                        containerColor = getDynamicThemeColor(0, appTheme, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary).first,
-                        contentColor = getDynamicThemeColor(0, appTheme, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary).second
-                    ),
-                    onClick = {
-                        scope.launch {"""
-content = content.replace(target_btn1, replacement_btn1)
+                        if (showDuplicateErrorDialog && duplicateErrorProduct != null) {
+                            androidx.compose.material3.AlertDialog(
+                                onDismissRequest = { showDuplicateErrorDialog = false },
+                                title = { Text("Código já cadastrado") },
+                                text = { Text("O código ${productCode.trim()} já pertence ao produto:\\n${duplicateErrorProduct!!.name}") },
+                                confirmButton = {
+                                    androidx.compose.material3.TextButton(onClick = { showDuplicateErrorDialog = false }) {
+                                        Text("OK")
+                                    }
+                                }
+                            )
+                        }
 
-# Por Foto
-target_btn2 = """                Button(
+                Button(
                     onClick = {
-                        launcher.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    }
-                ) {"""
-replacement_btn2 = """                Button(
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = getDynamicThemeColor(1, appTheme, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary).first,
-                        contentColor = getDynamicThemeColor(1, appTheme, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary).second
-                    ),
-                    onClick = {
-                        launcher.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    }
-                ) {"""
-content = content.replace(target_btn2, replacement_btn2)
+                        if (productName.isNotBlank() && productCode.isNotBlank()) {
+                            scope.launch {
+                                isAdding = true
+                                val existingProduct = viewModel.checkDuplicateCode(productCode)
+                                if (existingProduct != null) {
+                                    duplicateErrorProduct = existingProduct
+                                    showDuplicateErrorDialog = true
+                                    isAdding = false
+                                } else {
+                                    val success = viewModel.addProductSuspend(
+                                        name = productName,
+                                        code = productCode,
+                                        category = if (productCategory.isNotBlank()) productCategory else "Geral",
+                                        unit = "un",
+                                        imageUrl = productImageUrl.ifBlank { null }?.let { com.example.util.ImageUrlHelper.normalizeUrl(it) }
+                                    )
+                                    isAdding = false
+                                    if (success) {
+                                        showManualForm = false
+                                        snackbarHostState.showSnackbar("Produto adicionado com sucesso!")
+                                    }
+                                }
+                            }
+                        } else {
+                            scope.launch { snackbarHostState.showSnackbar("Nome e código são obrigatórios.") }
+                        }
+                    },"""
 
-# Manualmente
-target_btn3 = """                Button(
-                    onClick = {
-                        selectedImageUri = null"""
-replacement_btn3 = """                Button(
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = getDynamicThemeColor(2, appTheme, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary).first,
-                        contentColor = getDynamicThemeColor(2, appTheme, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary).second
-                    ),
-                    onClick = {
-                        selectedImageUri = null"""
-content = content.replace(target_btn3, replacement_btn3)
+content = content.replace(target, replacement)
 
 with open("app/src/main/java/com/example/ui/AdminScreen.kt", "w") as f:
     f.write(content)
-print("Success")

@@ -228,16 +228,27 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
 
     fun getProductsByCategory(category: String) = repository.getProductsByCategory(category)
 
+    suspend fun checkDuplicateCode(code: String, currentId: Int? = null): Product? {
+        val normalizedCode = code.trim()
+        val existingProduct = repository.getProductByCodeSync(normalizedCode)
+        if (existingProduct != null && existingProduct.id != currentId) {
+            return existingProduct
+        }
+        return null
+    }
+
     suspend fun updateProductSuspend(oldProduct: Product, newProduct: Product): Boolean {
         var finalProduct = newProduct
         finalProduct = finalProduct.copy(id = oldProduct.id)
         
-        if (oldProduct.code != newProduct.code) {
-            android.util.Log.d("ProductSync", "Verificando se o novo código já existe: ${newProduct.code}")
-            val existingProduct = repository.getProductByCodeSync(newProduct.code)
+        val normalizedCode = newProduct.code.trim()
+        finalProduct = finalProduct.copy(code = normalizedCode)
+        if (oldProduct.code != normalizedCode) {
+            android.util.Log.d("ProductSync", "Verificando se o novo código já existe: $normalizedCode")
+            val existingProduct = repository.getProductByCodeSync(normalizedCode)
             if (existingProduct != null && existingProduct.id != oldProduct.id) {
-                android.util.Log.e("ProductSync", "Código já existe: ${newProduct.code}")
-                _syncMessage.emit("Código já cadastrado\n\nO código ${newProduct.code} já pertence ao produto:\n${existingProduct.name}")
+                android.util.Log.e("ProductSync", "Código já existe: $normalizedCode")
+                _syncMessage.emit("Código já cadastrado\n\nO código $normalizedCode já pertence ao produto:\n${existingProduct.name}")
                 return false
             }
         }
@@ -340,9 +351,10 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
     }
 
         suspend fun addProductSuspend(name: String, code: String, category: String, unit: String, imageUrl: String? = null): Boolean {
-        val existingProduct = repository.getProductByCodeSync(code)
+        val normalizedCode = code.trim()
+        val existingProduct = repository.getProductByCodeSync(normalizedCode)
         if (existingProduct != null) {
-            _syncMessage.emit("Código já cadastrado\n\nJá existe um produto utilizando o código $code:\n${existingProduct.name}")
+            _syncMessage.emit("Código já cadastrado\n\nJá existe um produto utilizando o código $normalizedCode:\n${existingProduct.name}")
             return false
         }
         var finalImageUrl = imageUrl
@@ -360,7 +372,7 @@ class MainViewModel(private val repository: ProductRepository, val userPreferenc
             }
         }
         val product = Product(
-            code = code,
+            code = normalizedCode,
             name = name,
             searchName = name.lowercase().replace(Regex("[áàâã]"), "a").replace(Regex("[éèê]"), "e").replace(Regex("[íìî]"), "i").replace(Regex("[óòôõ]"), "o").replace(Regex("[úùû]"), "u").replace(Regex("[ç]"), "c"),
             category = category,

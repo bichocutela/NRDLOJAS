@@ -18,14 +18,19 @@ import androidx.compose.ui.Modifier
 import com.example.ui.theme.getDynamicThemeColor
 import androidx.compose.ui.unit.dp
 import com.example.data.Product
+import kotlinx.coroutines.launch
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManageProductsScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
     val products by viewModel.allProducts.collectAsState()
     val appTheme by viewModel.userPreferences.appTheme.collectAsState(initial = "multicolor")
+    val coroutineScope = rememberCoroutineScope()
     var showDialog by remember { mutableStateOf(false) }
     var editingProduct by remember { mutableStateOf<Product?>(null) }
+    var duplicateErrorProduct by remember { mutableStateOf<Product?>(null) }
+    var showDuplicateErrorDialog by remember { mutableStateOf(false) }
     
     var name by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
@@ -76,6 +81,19 @@ fun ManageProductsScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
             }
         }
         
+        if (showDuplicateErrorDialog && duplicateErrorProduct != null) {
+            AlertDialog(
+                onDismissRequest = { showDuplicateErrorDialog = false },
+                title = { Text("Código já cadastrado") },
+                text = { Text("O código ${code.trim()} já pertence ao produto:\n${duplicateErrorProduct!!.name}") },
+                confirmButton = {
+                    TextButton(onClick = { showDuplicateErrorDialog = false }) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+
         if (showDialog && editingProduct != null) {
             AlertDialog(
                 onDismissRequest = { showDialog = false },
@@ -114,14 +132,22 @@ fun ManageProductsScreen(viewModel: MainViewModel, onNavigateBack: () -> Unit) {
                 confirmButton = {
                     TextButton(onClick = {
                         if (name.isNotBlank() && code.isNotBlank()) {
-                            val newProduct = editingProduct!!.copy(
-                                name = name,
-                                code = code,
-                                category = category,
-                                imageUrl = imageUrl.takeIf { it.isNotBlank() }
-                            )
-                            viewModel.updateProduct(editingProduct!!, newProduct)
-                            showDialog = false
+                            coroutineScope.launch {
+                                val existingProduct = viewModel.checkDuplicateCode(code, editingProduct!!.id)
+                                if (existingProduct != null) {
+                                    duplicateErrorProduct = existingProduct
+                                    showDuplicateErrorDialog = true
+                                } else {
+                                    val newProduct = editingProduct!!.copy(
+                                        name = name,
+                                        code = code,
+                                        category = category,
+                                        imageUrl = imageUrl.takeIf { it.isNotBlank() }
+                                    )
+                                    viewModel.updateProduct(editingProduct!!, newProduct)
+                                    showDialog = false
+                                }
+                            }
                         }
                     }) {
                         Text("Salvar")
